@@ -1,0 +1,43 @@
+<?xml version="1.0" ?>
+<tool id="topx_targz" name="topx_targz" version="1.0.0">
+    <description>Seleziona i geni con i valori più alti secondo una metrica scelta (espressione o varianza) e restituisce solo i top X dalla matrice di conteggi.</description>
+    <requirements>
+        <container type="docker">repbioinfo/topxv2:1</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+    mkdir -p /data &&
+    tar -xf '$data_tar' -C /data &&
+    Rscript /bin/top.R $matrixname $format $separator $logged $threshold $type > '$output_log' 2>&1 &&
+    tar -chzf data_archive.tar.gz -C /data . &&
+    true
+]]></command>
+    <inputs>
+        <param name="matrixname" type="select" label="name del file di input senza estensione">
+            <option value="annotated">annotated</option>
+        </param>
+        <param name="format" type="select" label="formato del file di input">
+            <option value="csv">csv</option>
+            <option value="txt">txt</option>
+        </param>
+        <param name="threshold" type="select" label="Soglia per selezionare i geni top (solitamente fra 10 e 2000 a seconda delle dimensioni del datase)">
+            <option value="10">10</option>
+        </param>
+        <param name="separator" type="select" label="Separatore del file (Separatore usato nel file Usare &quot;,&quot; per CSV, &quot;\t&quot; per TSV)">
+            <option value=",">','</option>
+            <option value="\t">'\t'</option>
+        </param>
+        <param name="logged" type="select" label="Indica se i valori della matrice di conteggi sono già log‑trasformati (TRUE) oppure no (FALSE).">
+            <option value="FALSE">FALSE</option>
+            <option value="TRUE">TRUE</option>
+        </param>
+        <param name="type" type="select" label="Tipo di analisi da eseguire.">
+            <option value="expression">expression</option>
+            <option value="variance">variance</option>
+        </param>
+        <param name="data_tar" type="data" format="tar.gz" label="percorso cartella contenente i dati e ricevente i risultati (Tar Archive)"/>
+    </inputs>
+    <outputs>
+        <data name="output_log" format="txt" label="${tool.name} Global Log"/>
+        <data name="archivio_data" format="tar.gz" from_work_dir="data_archive.tar.gz" label="Full Archive Data"/>
+    </outputs>
+</tool>

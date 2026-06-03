@@ -1,0 +1,7 @@
+# -------------------- Bayron project -------------
+Creator: "Baryon"
+ 
+# Whether to save the BAM file
+# Possible values: true, false
+bamsave: "true" # <=====================
+ 

@@ -1,0 +1,27 @@
+<?xml version="1.0" ?>
+<tool id="sample_sheettolibinfo" name="sample_sheettolibinfo" version="1.0.0">
+    <description>produce in output il file fof.txt e rof.txt nella cartella outdir</description>
+    <requirements>
+        <container type="docker">repbioinfo/htgts_pipeline_lts_v16:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+    mkdir -p /outDir &&
+    ln -s '$xmlfile' '${xmlfile.element_identifier}' &&
+    python3 /Algorithm/sample_sheetTolibInfo.py ${xmlfile.element_identifier} /outDir/fof.txt /outDir/rof.txt $configtype > '$output_log' 2>&1 &&
+    tar -chzf outDir_archive.tar.gz -C /outDir . &&
+    true
+]]></command>
+    <inputs>
+        <param name="xmlfile" type="data" format="data" label="name del file xml"/>
+        <param name="configtype" type="select" label="tipo di cellule">
+            <option value="HTGTS_mouse">HTGTS_mouse</option>
+            <option value="HTGTS_human">HTGTS_human</option>
+            <option value="CELTICSseq">CELTICSseq</option>
+            <option value="polyA">polyA</option>
+        </param>
+    </inputs>
+    <outputs>
+        <data name="output_log" format="txt" label="${tool.name} Global Log"/>
+        <data name="archivio_outDir" format="tar.gz" from_work_dir="outDir_archive.tar.gz" label="Full Archive Outdir"/>
+    </outputs>
+</tool>

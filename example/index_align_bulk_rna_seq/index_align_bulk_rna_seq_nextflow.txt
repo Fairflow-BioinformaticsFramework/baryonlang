@@ -1,0 +1,1 @@
+docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock -v /c/path/to/index_align_bulk_rna_seq:/c/path/to/index_align_bulk_rna_seq -w /c/path/to/index_align_bulk_rna_seq -e DOCKER_API_VERSION=1.44 nextflow/nextflow:26.04.2 nextflow run index_align_bulk_rna_seq.nf

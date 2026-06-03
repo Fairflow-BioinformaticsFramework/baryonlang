@@ -1,0 +1,52 @@
+[research]
+description=Seleziona i geni con i valori più alti secondo una metrica scelta (espressione o varianza) e restituisce solo i top X dalla matrice di conteggi.
+name=topX
+script=All
+#
+[run]
+command=docker run --rm
+script= Rscript /bin/top.R
+image= repbioinfo/topxv2:1
+usage= <matrixName> <format> <separator> <logged> <threshold> <type>
+#
+[directory]
+name=workDir
+description=percorso cartella di lavoro
+flag=io
+mount=/workdir
+#
+[directory]
+name=data
+description=percorso cartella contenente i dati e ricevente i risultati 
+mount=/data
+flag=io
+#
+[parameter]
+name=matrixName
+description=name del file di input senza estensione
+value=annotated
+#
+[parameter]
+name=format
+values=csv, txt
+description=formato del file di input
+#
+[parameter]
+name=threshold
+description= Soglia per selezionare i geni top (solitamente fra 10 e 2000 a seconda delle dimensioni del datase)
+value=10
+#
+[parameter]
+name=separator
+values=',','\t'
+description= Separatore del file (Separatore usato nel file Usare "," per CSV, "\t" per TSV)
+#
+[parameter]
+name=logged
+values=FALSE,TRUE
+description= Indica se i valori della matrice di conteggi sono già log‑trasformati (TRUE) oppure no (FALSE).
+#
+[parameter]
+name=type
+values=expression, variance
+description= Tipo di analisi da eseguire.

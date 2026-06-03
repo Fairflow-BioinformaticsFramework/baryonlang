@@ -1,0 +1,39 @@
+<?xml version="1.0" ?>
+<tool id="htgts_full" name="htgts_full" version="1.0.0">
+    <description>analizzare dati di sequenziamento e mappare le traslocazioni genomiche o i siti di rottura del DNA su larga scala</description>
+    <requirements>
+        <container type="docker">repbioinfo/htgts_pipeline_lts_v16:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+    mkdir -p /outDir &&
+    ln -s '$fastq1' '${fastq1.element_identifier}' &&
+    ln -s '$fastq2' '${fastq2.element_identifier}' &&
+    ln -s '$expinfo' '${expinfo.element_identifier}' &&
+    ln -s '$expinfo2' '${expinfo2.element_identifier}' &&
+    /Algorithm/HTGTS_Full.sh -fastq1 ${fastq1.element_identifier} -fastq2 ${fastq2.element_identifier} -expInfo ${expinfo.element_identifier} -expInfo2 ${expinfo2.element_identifier} -outDir /outDir -configType $configtype -assembly $assembly > '$output_log' 2>&1 &&
+    tar -chzf outDir_archive.tar.gz -C /outDir . &&
+    true
+]]></command>
+    <inputs>
+        <param name="fastq1" type="data" format="data" label="the first input FASTQ file name"/>
+        <param name="fastq2" type="data" format="data" label="the second input FASTQ file name"/>
+        <param name="expinfo" type="data" format="data" label="name of the libseqInfo.txt file"/>
+        <param name="expinfo2" type="data" format="data" label="name of the libseqInfo2.txt file"/>
+        <param name="configtype" type="select" label="tipo di cellule">
+            <option value="HTGTS_human">HTGTS_human</option>
+            <option value="HTGTS_mouse">HTGTS_mouse</option>
+            <option value="CELTICSseq">CELTICSseq</option>
+            <option value="polyA">polyA</option>
+        </param>
+        <param name="assembly" type="select" label="reference genome version">
+            <option value="hg38">hg38</option>
+            <option value="mm9">mm9</option>
+            <option value="mm10">mm10</option>
+            <option value="custom">custom</option>
+        </param>
+    </inputs>
+    <outputs>
+        <data name="output_log" format="txt" label="${tool.name} Global Log"/>
+        <data name="archivio_outDir" format="tar.gz" from_work_dir="outDir_archive.tar.gz" label="Full Archive Outdir"/>
+    </outputs>
+</tool>

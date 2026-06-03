@@ -1,0 +1,33 @@
+[research]
+description=produce in output il file fof.txt e rof.txt nella cartella outdir
+name=sample_sheetTolibInfo
+script=All
+#
+[run]
+command=docker run --rm -v <workDir>:/work -v <outDir>:/Out
+script= python3 /Algorithm/sample_sheetTolibInfo.py
+image= repbioinfo/htgts_pipeline_lts_v16:latest  
+usage= <xmlfile> <outDir>/fof.txt <outdir>/rof.txt <configType>
+#
+[directory]
+name=workDir
+description=percorso cartella di lavoro
+flag=io
+mount=/workDir
+#
+[directory]
+name=outDir
+description=percorso cartella di output 
+mount=/outDir
+flag=out
+#
+[file]
+name=xmlfile
+flag=nc
+description=name del file xml
+#
+[parameter]
+name=configType
+values=HTGTS_mouse,HTGTS_human,CELTICSseq,polyA
+description= tipo di cellule
+#

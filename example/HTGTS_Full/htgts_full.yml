@@ -1,0 +1,21 @@
+version: v1.0
+workflows:
+  htgts_full-workflow:
+    type: cwl
+    config:
+      file: htgts_full.cwl
+      settings: htgts_full-params.yml
+    bindings:
+      - step: /
+        target:
+          deployment: docker-htgts_full
+deployments:
+  docker-htgts_full:
+    type: docker
+    config:
+      image: repbioinfo/htgts_pipeline_lts_v16:latest
+      volume:
+        # percorso cartella di lavoro   =====================>
+        - /c/percorso/cartella/di/lavoro:/workDir 
+        # percorso cartella di output   =====================>
+        - /c/percorso/cartella/di/output:/outDir 

@@ -1,0 +1,25 @@
+# -------------------- Bayron project -------------
+Creator: "Baryon"
+ 
+# name del file di input senza estensione
+matrixname: "annotated" # <=====================
+ 
+# formato del file di input
+# Possible values: csv, txt
+format: "csv" # <=====================
+ 
+# Soglia per selezionare i geni top (solitamente fra 10 e 2000 a seconda delle dimensioni del datase)
+threshold: "10" # <=====================
+ 
+# Separatore del file (Separatore usato nel file Usare "," per CSV, "\t" per TSV)
+# Possible values: ',','\t'
+separator: "," # <=====================
+ 
+# Indica se i valori della matrice di conteggi sono già log‑trasformati (TRUE) oppure no (FALSE).
+# Possible values: FALSE,TRUE
+logged: "FALSE" # <=====================
+ 
+# Tipo di analisi da eseguire.
+# Possible values: expression, variance
+type: "expression" # <=====================
+ 

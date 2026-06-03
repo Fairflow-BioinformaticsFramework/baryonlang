@@ -1,0 +1,33 @@
+[research]
+description=Funzione per eseguire l'allineamento e l'indicizzazione
+name=index_align_scrs
+script=Python, Galaxy, R, Bash, Fairflow, Nextflow, Streamflow
+
+[run]
+command=docker run --rm 
+script= bash /home/index_align.sh
+image= repbioinfo/carncellranger2  
+usage= <BAMSAVE>
+
+[directory]
+name=workDir
+description=percorso cartella di lavoro
+flag=io
+mount=/workDir
+#
+[directory]
+name=genome
+description=percorso cartella di lavoro, Genome
+flag=io
+mount=/genome
+
+[directory]
+name=scratch
+description=percorso cartella Data, qui viene salvato il log e andrebbero piazzati i file di output. Scratch
+flag=io
+mount=/scratch
+
+[parameter]
+name=BAMSAVE
+values=true, false
+description= Whether to save the BAM file 

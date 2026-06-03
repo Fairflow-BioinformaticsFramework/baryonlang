@@ -1,0 +1,1 @@
+docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock -v /c/path/to/htgts_full:/c/path/to/htgts_full -w /c/path/to/htgts_full -e DOCKER_API_VERSION=1.44 nextflow/nextflow:26.04.2 nextflow run htgts_full.nf

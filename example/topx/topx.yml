@@ -1,0 +1,21 @@
+version: v1.0
+workflows:
+  topx-workflow:
+    type: cwl
+    config:
+      file: topx.cwl
+      settings: topx-params.yml
+    bindings:
+      - step: /
+        target:
+          deployment: docker-topx
+deployments:
+  docker-topx:
+    type: docker
+    config:
+      image: repbioinfo/topxv2:1
+      volume:
+        # percorso cartella di lavoro   =====================>
+        - /c/percorso/cartella/di/lavoro:/workdir 
+        # percorso cartella contenente i dati e ricevente i risultati   =====================>
+        - /c/percorso/cartella/contenente/i/dati/e/ricevente/i/risultati:/data 

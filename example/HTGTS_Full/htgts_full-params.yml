@@ -1,0 +1,31 @@
+# -------------------- Bayron project -------------
+Creator: "Baryon"
+ 
+# the first input FASTQ file name
+fastq1:
+  class: File
+  path: path/to/file/fastq1 # <=====================
+ 
+# the second input FASTQ file name
+fastq2:
+  class: File
+  path: path/to/file/fastq2 # <=====================
+ 
+# name of the libseqInfo.txt file
+expinfo:
+  class: File
+  path: path/to/file/expinfo # <=====================
+ 
+# name of the libseqInfo2.txt file
+expinfo2:
+  class: File
+  path: path/to/file/expinfo2 # <=====================
+ 
+# tipo di cellule
+# Possible values: HTGTS_human,HTGTS_mouse,CELTICSseq,polyA
+configtype: "HTGTS_human" # <=====================
+ 
+# reference genome version
+# Possible values: hg38,mm9,mm10,custom
+assembly: "hg38" # <=====================
+ 

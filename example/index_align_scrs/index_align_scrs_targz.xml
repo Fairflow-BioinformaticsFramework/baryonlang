@@ -1,0 +1,29 @@
+<?xml version="1.0" ?>
+<tool id="index_align_scrs_targz" name="index_align_scrs_targz" version="1.0.0">
+    <description>Funzione per eseguire l'allineamento e l'indicizzazione</description>
+    <requirements>
+        <container type="docker">repbioinfo/carncellranger2</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+    mkdir -p /genome /scratch &&
+    tar -xf '$genome_tar' -C /genome &&
+    tar -xf '$scratch_tar' -C /scratch &&
+    bash /home/index_align.sh $bamsave > '$output_log' 2>&1 &&
+    tar -chzf genome_archive.tar.gz -C /genome . &&
+    tar -chzf scratch_archive.tar.gz -C /scratch . &&
+    true
+]]></command>
+    <inputs>
+        <param name="bamsave" type="select" label="Whether to save the BAM file">
+            <option value="true">true</option>
+            <option value="false">false</option>
+        </param>
+        <param name="genome_tar" type="data" format="tar.gz" label="percorso cartella di lavoro, Genome (Tar Archive)"/>
+        <param name="scratch_tar" type="data" format="tar.gz" label="percorso cartella Data, qui viene salvato il log e andrebbero piazzati i file di output. Scratch (Tar Archive)"/>
+    </inputs>
+    <outputs>
+        <data name="output_log" format="txt" label="${tool.name} Global Log"/>
+        <data name="archivio_genome" format="tar.gz" from_work_dir="genome_archive.tar.gz" label="Full Archive Genome"/>
+        <data name="archivio_scratch" format="tar.gz" from_work_dir="scratch_archive.tar.gz" label="Full Archive Scratch"/>
+    </outputs>
+</tool>

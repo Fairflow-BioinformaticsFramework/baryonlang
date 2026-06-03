@@ -1,0 +1,21 @@
+version: v1.0
+workflows:
+  sample_sheettolibinfo-workflow:
+    type: cwl
+    config:
+      file: sample_sheettolibinfo.cwl
+      settings: sample_sheettolibinfo-params.yml
+    bindings:
+      - step: /
+        target:
+          deployment: docker-sample_sheettolibinfo
+deployments:
+  docker-sample_sheettolibinfo:
+    type: docker
+    config:
+      image: repbioinfo/htgts_pipeline_lts_v16:latest
+      volume:
+        # percorso cartella di lavoro   =====================>
+        - /c/percorso/cartella/di/lavoro:/workDir 
+        # percorso cartella di output   =====================>
+        - /c/percorso/cartella/di/output:/outDir 

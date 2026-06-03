@@ -1,0 +1,1 @@
+docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock -v /c/path/to/index_align_scrs:/c/path/to/index_align_scrs -w /c/path/to/index_align_scrs -e DOCKER_API_VERSION=1.44 nextflow/nextflow:26.04.2 nextflow run index_align_scrs.nf

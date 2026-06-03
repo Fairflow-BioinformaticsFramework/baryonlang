@@ -1,0 +1,23 @@
+version: v1.0
+workflows:
+  index_align_scrs-workflow:
+    type: cwl
+    config:
+      file: index_align_scrs.cwl
+      settings: index_align_scrs-params.yml
+    bindings:
+      - step: /
+        target:
+          deployment: docker-index_align_scrs
+deployments:
+  docker-index_align_scrs:
+    type: docker
+    config:
+      image: repbioinfo/carncellranger2
+      volume:
+        # percorso cartella di lavoro   =====================>
+        - /c/percorso/cartella/di/lavoro:/workDir 
+        # percorso cartella di lavoro, Genome   =====================>
+        - /c/percorso/cartella/di/lavoro,/Genome:/genome 
+        # percorso cartella Data, qui viene salvato il log e andrebbero piazzati i file di output. Scratch   =====================>
+        - /c/percorso/cartella/Data,/qui/viene/salvato/il/log/e/andrebbero/piazzati/i/file/di/output./Scratch:/scratch 
