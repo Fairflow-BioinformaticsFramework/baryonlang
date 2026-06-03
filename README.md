@@ -112,7 +112,7 @@ Baryon performs the following checks on the `.bala` file before generating scrip
 - `name`, `mount`, and `flag` values must be a single word (no spaces).
 - Sections `[research]` and `[run]` are **mandatory**, as is the `workDir` directory.
 - Every placeholder in `usage` (`<name>`) must have a corresponding section with a matching `name=`.
-- `flag` for files accepts only `C` (copy) or `R` (read-only); for directories only `A` (full access) or `R` (read-only).
+- `flag` for files accepts only `CP` (copy) or `RO` (read-only) or `NC` (not-copy); for directories only `RO` (read-only) or `IN` (Input-only) or `OUT` (output-only) or `IO` (Input-and-Output).
 - Extra characters after a value trigger a warning and halt processing.
 - Duplicate `name` values are not allowed.
 - Missing `name` keywords are flagged as errors.
@@ -126,7 +126,7 @@ Baryon performs the following checks on the `.bala` file before generating scrip
 2. Find the script entry point and set it in `script` under `[run]`. Prefix with the interpreter if necessary (e.g. `python3 /Algorithm/script.py`).
 3. Always include a `workDir` directory. A `scratch` subdirectory will be created for each run.
 4. If the script accepts an output folder, use `outdir` to keep numbered scratch folders aligned with `workdir`.
-5. Add any additional directories; use `flag=ro` for read-only, or leave the default `flag=io`.
+5. Add any additional directories; use an appropriate `flag` usually `flag=io`.
 6. Build the `usage` line with the appropriate placeholders and define a `[file]`, `[directory]`, or `[parameter]` section for each.
 7. For file sections, use `flag=nc` to avoid copying, `flag=cp` to copy to `workdir/scratch`, or `flag=ro` for read-only.
 
