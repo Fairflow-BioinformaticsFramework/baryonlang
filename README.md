@@ -1,1 +1,257 @@
-# Baryon_SourceCode
+# Baryon
+
+**Baryon** is a tool that enables bioinformatics workflows to run across different environments and operating systems without any manual conversion or adaptation. Researchers simply describe their pipeline once in a `.bala` configuration file, and Baryon takes care of generating ready-to-use scripts for multiple execution platforms.
+
+---
+
+## Overview
+
+The core idea is straightforward: a researcher creates a `.bala` file containing all the information needed for a bioinformatics analysis — parameters, input files, directories, and execution logic — in a simple, structured format. Baryon reads this file, validates it, and automatically generates execution scripts for:
+
+- **Python**
+- **Galaxy**
+- **R**
+- **Bash**
+- **Nextflow**
+- **Streamflow**
+
+Each generated script guides the user to customize paths and parameters, then runs the appropriate Docker container. Any researcher who wants to reproduce the analysis only needs to supply their own files and parameters.
+
+> **Prerequisite:** The script to be executed, along with its full environment, must be packaged as a Docker image.
+
+---
+
+## The `.bala` File
+
+The `.bala` file is the single configuration file that drives Baryon's script generation.
+
+### General Rules
+
+- Keywords are **case-insensitive** (can be written in uppercase, lowercase, or mixed).
+- Values after `=` are **case-sensitive** and must be written exactly as required.
+- Lines starting with `#` are comments and are ignored.
+- Each piece of information must be on a **single line**.
+- Information is organized into **named sections** enclosed in square brackets.
+
+---
+
+### Sections
+
+#### `[research]`
+Contains metadata about the experiment or publication. Only one section is allowed.
+
+| Keyword | Description |
+|---|---|
+| `name` | Name of the experiment; used to name the generated scripts. |
+| `script` | Target languages for script generation. Use `all` to generate for every supported platform. |
+| `description` | Optional. Description propagated into generated files. |
+
+#### `[file]`
+Defines input files to pass to the application. Multiple sections are allowed.
+
+| Keyword | Description |
+|---|---|
+| `name` | Unique name for the file (required). |
+| `flag` | `RO` = read-only, `cp` = copy to workdir before processing, `nc` = no copy. |
+| `description` | Optional description propagated to generated scripts. |
+
+#### `[directory]`
+Defines directories to pass to the application. Multiple sections are allowed.
+
+| Keyword | Description |
+|---|---|
+| `name` | Unique name. `workDir` is **mandatory** — it is used for copied files and to write `output_log.txt`. |
+| `mount` | **Required.** The path/name by which the directory will be mounted inside Docker. |
+| `flag` | `ro` = read-only, `io` = full access, `in` = input only, `out` = output only. |
+| `description` | Optional description propagated to generated scripts. |
+
+> A numbered `scratch` subdirectory is created inside `workdir` for each run to preserve logs and copied files across executions.
+>
+> If an `outdir` directory is defined, a numbered scratch subdirectory aligned with `workdir`'s counter is created inside it. **Do not use `outdir` for scripts that expect a specific mount path.**
+>
+> `workdir` and `outdir` cannot be read-only.
+
+#### `[parameter]`
+Defines parameters to pass to the application. Multiple sections are allowed.
+
+| Keyword | Description |
+|---|---|
+| `name` | Unique name for the parameter (required). |
+| `value` | Default value. |
+| `values` | Comma-separated list of accepted values (e.g. `values=x,y,z`). Use double quotes for values with spaces or special characters (e.g. `"my value"`). |
+| `description` | Optional description propagated to generated scripts. |
+
+#### `[run]`
+Defines how the Docker container is executed. Only one section is allowed.
+
+| Keyword | Description |
+|---|---|
+| `command` | The Docker run command and its flags. |
+| `script` | The script to execute inside the container. Prefix with interpreter if needed (e.g. `python3 /path/to/script.py`). |
+| `image` | The Docker image to use. |
+| `usage` | Defines the order and flags of parameters. Use `<name>` as placeholders referencing section names. Constants can be placed directly. |
+
+**Example `usage` with placeholders:**
+```
+usage = <param1> --param2 <param2> --parammulti <paramx> <paramy> constant_value
+```
+
+For output files in a specific location:
+```
+usage = <outdir>/output_file.txt
+```
+Define the corresponding directory section with `name=outdir` and set `mount` to the expected disk path.
+
+---
+
+### Validation Rules
+
+Baryon performs the following checks on the `.bala` file before generating scripts:
+
+- Lines starting with `#` and blank lines are ignored.
+- `name`, `mount`, and `flag` values must be a single word (no spaces).
+- Sections `[research]` and `[run]` are **mandatory**, as is the `workDir` directory.
+- Every placeholder in `usage` (`<name>`) must have a corresponding section with a matching `name=`.
+- `flag` for files accepts only `C` (copy) or `R` (read-only); for directories only `A` (full access) or `R` (read-only).
+- Extra characters after a value trigger a warning and halt processing.
+- Duplicate `name` values are not allowed.
+- Missing `name` keywords are flagged as errors.
+- All directories must have a `mount` keyword.
+
+---
+
+## Writing a `.bala` File — Step-by-Step Guide
+
+1. Find the Docker image name and set it in `image` under `[run]`.
+2. Find the script entry point and set it in `script` under `[run]`. Prefix with the interpreter if necessary (e.g. `python3 /Algorithm/script.py`).
+3. Always include a `workDir` directory. A `scratch` subdirectory will be created for each run.
+4. If the script accepts an output folder, use `outdir` to keep numbered scratch folders aligned with `workdir`.
+5. Add any additional directories; use `flag=ro` for read-only, or leave the default `flag=io`.
+6. Build the `usage` line with the appropriate placeholders and define a `[file]`, `[directory]`, or `[parameter]` section for each.
+7. For file sections, use `flag=nc` to avoid copying, `flag=cp` to copy to `workdir/scratch`, or `flag=ro` for read-only.
+
+---
+
+## Supported Platforms
+
+### Streamflow
+
+A container-based Workflow Management System designed for complex, distributed data analysis pipelines (such as bioinformatics ones).
+
+**Generated files** (named after the `[research]` name):
+- `<name>_params.yml` — all parameters and file paths (customize this)
+- `<name>.yml` — directory mounts (customize this)
+- `<name>.cwl` — CWL workflow definition (do not modify)
+
+**Philosophy:**
+- All parameters are written to `<name>_params.yml` with descriptions from `description` keywords; default values are set from `value` or the first entry in `values`.
+- All files appear in `<name>_params.yml` as customizable paths.
+- All directories are mounted in `<name>.yml`.
+- Files with `flag=cp` are copied to `workdir` before the script is called.
+
+**Prerequisites:** Docker and WSL installed; the Streamflow image from UniTO downloaded (note: the original image does not include Docker — use the local variant).
+
+**Run command (Windows):**
+```bash
+docker run --rm -it \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v "${PWD}:/workflow" \
+  -w /workflow \
+  streamflow-unito-local streamflow run <name>.yml
+```
+
+---
+
+### Nextflow
+
+A code-based Workflow Management System using a Groovy-derived DSL.
+
+**Generated files:**
+- `nextflow.config`
+- `<name>.nf`
+- Updated `<name>_command.txt` with the Docker launch command
+
+Configure parameters, files, and directories in the first section of the `.nf` file.
+
+Each run creates a random subdirectory under `work/` containing `log.out`.
+
+**Run command (Windows `.bat` example):**
+```bat
+set MY_PATH=/c/my_project/nextflow/my_analysis
+
+docker run -it --rm ^
+  -v /var/run/docker.sock:/var/run/docker.sock ^
+  -v %MY_PATH%:%MY_PATH% ^
+  -w %MY_PATH% ^
+  -e DOCKER_API_VERSION=1.44 ^
+  nextflow/nextflow:24.10.4 nextflow run my_analysis.nf
+
+pause
+```
+
+---
+
+### Galaxy
+
+When input directories are present, Baryon generates **two XML variants**: one using Galaxy collections, one using `.tar.gz` archives. Output directories are always `.tar.gz` due to collection limitations.
+
+**Creating a collection from a directory:**
+1. Upload all files from the directory.
+2. Enable the selection checkbox and select all files.
+3. Choose **Advanced build list** from the dropdown.
+4. Select **flat list** and **disable** the option to strip file extensions.
+5. Name the collection after the source directory.
+
+**Creating a `.tar.gz` from a directory (Windows):**
+```bash
+tar -czf genome.tar.gz -C genome .
+```
+When uploading, specify the type as `tar.gz` instead of auto-detect.
+
+---
+
+## Example Workflows
+
+| Workflow | Description |
+|---|---|
+| `htgts_Full` | Analyzes sequencing data to map genomic translocations or large-scale DNA break sites. Processes two FASTQ files and two `libseq` files from `workdir`; outputs to `outdir`. |
+| `index_align_bulk_rna_seq` | Bulk RNA-Seq analysis. Measures average gene expression across a cell population. Expects FASTA and annotation files in `/genome/` and FASTQ reads in `/scratch/`. |
+| `index_align_scrs` | Single-Cell RNA-Seq (scRNA-Seq) analysis. Tracks gene expression at single-cell level using cell barcodes. Same input structure as Bulk RNA-Seq. |
+| `sample_sheetTolibInfo` | Converts experiment metadata from an Excel spreadsheet into a `KEY=VALUE` format readable by downstream HTGTS Bash pipeline scripts. |
+| `TopX` | Filters a gene count matrix, selecting the most relevant genes by variance (using edgeR) or by total count. Reads a CSV from `/data/` and writes results to the same folder. |
+
+---
+
+## Useful Commands
+
+```bash
+# HTGTS Full analysis
+docker run --rm -it \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v "${PWD}:/workflow" -w /workflow \
+  streamflow-unito-local streamflow run HTGTS_Full.yml
+
+# TopX filtering
+docker run --rm -it \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v "${PWD}:/workflow" -w /workflow \
+  streamflow-unito-local streamflow run topX.yml
+
+# Bulk RNA-Seq
+docker run --rm -it \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v "${PWD}:/workflow" -w /workflow \
+  streamflow-unito-local streamflow run index_align_bulk_rna_seq.yml
+
+# Single-Cell RNA-Seq
+docker run --rm -it \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v "${PWD}:/workflow" -w /workflow \
+  streamflow-unito-local streamflow run index_align_scrs.yml
+
+# Sample sheet conversion
+docker run --rm -it \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v "${PWD}:/workflow" -w /workflow \
+  streamflow-unito-local streamflow run sample_sheetToLibInfo.yml
+```
