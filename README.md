@@ -132,6 +132,20 @@ Baryon performs the following checks on the `.bala` file before generating scrip
 
 ---
 
+## Container
+
+Baryon supports both **Docker** and **Singularity** as container environments.  
+To use Singularity as a Docker‑compatible backend, simply modify the `run` section by setting:
+
+- `command = singularity exec`
+- prefixing the image name with `docker://`
+
+This allows Baryon to execute containers through Singularity while pulling images from Docker registries.
+
+When a `.bala` uses Singularity as its Docker environment, **configuration files for Galaxy, Nextflow, and StreamFlow will not be generated**, as these platforms require native Docker‑compatible metadata.
+
+---
+
 ## Supported Platforms
 
 ### Streamflow
