@@ -71,8 +71,6 @@ def gen_erre(sections):
     bala_img    = run_sec.get('image', '').strip()
     bala_script = run_sec.get('script', '').strip()
     bala_usage  = run_sec.get('usage', '').strip()
-    full_template = f"{bala_cmd} {bala_img} {bala_script} {bala_usage}"
-
     dynamic_items = []
     for item in sections:
         if item['type'] in ('directory', 'file', 'parameter') and 'name' in item['content']:
@@ -115,7 +113,7 @@ def gen_erre(sections):
     for item in dynamic_items:
         name  = item['content']['name']
         color = TYPE_COLORS.get(item['type'], DEFAULT_COLOR)
-        usage_parts.append(f'paste0("{color}<{name}", RESET)')
+        usage_parts.append(f'paste0("{color}<{name}>", RESET)')
 
     usage_join = ", ' ', ".join(usage_parts)
     w(f"usage_str <- paste0({usage_join})")
@@ -328,29 +326,27 @@ def gen_erre(sections):
     # -------------------------------------------------------------------------
     # Assemble and run docker command
     # -------------------------------------------------------------------------
+    full_template = f"{bala_img} {bala_script} {bala_usage}"
     w(
-        "# --- Assemble docker command ---",
-        f"cmd <- {repr(full_template)}",
-        "mount_str <- paste(mounts, collapse = ' ')",
-        "cmd <- sub('docker run', paste('docker run', mount_str), cmd, fixed = TRUE)",
-        "",
-        "replace_placeholder <- function(m) {",
-        "  key <- regmatches(m, regexpr('[^<>]+', m))",
-        "  val <- docker_vals[[key]]",
-        "  if (!is.null(val)) as.character(val) else m",
-        "}",
-        "",
+    "# --- Assemble docker command ---",
+    "mount_str <- paste(mounts, collapse = ' ')",
+    )
+
+    if bala_cmd.split()[0].lower() == 'singularity':
+        w(
+            "mount_str <- gsub('-v \"', ' --bind ', mount_str, fixed = TRUE)",
+            "mount_str <- gsub('\"', '', mount_str, fixed = TRUE)",
+        )
+    w(
+        f"cmd <- paste('{bala_cmd}', mount_str, {repr(full_template)})",
         "placeholders <- regmatches(cmd, gregexpr('<[^>]+>', cmd))[[1]]",
         "for (ph in placeholders) {",
         "  key <- gsub('<|>', '', ph)",
         "  val <- docker_vals[[key]]",
         "  if (!is.null(val)) cmd <- gsub(ph, val, cmd, fixed = TRUE)",
         "}",
-        "",
         "cat('\\n', YELLOW, 'Running:\\n', RESET, WHITE, cmd, RESET, '\\n\\n', sep = '')",
-        "",
     )
-
     w(
         "log_path <- file.path(scratch_path, 'output_log.txt')",
         "cat(YELLOW, 'Log: ', RESET, WHITE, log_path, RESET, '\\n\\n', sep = '')",

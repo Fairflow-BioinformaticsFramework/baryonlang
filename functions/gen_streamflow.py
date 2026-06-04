@@ -3,6 +3,9 @@ import re
 def gen_streamflow(sections):
     res_sec = next((s['content'] for s in sections if s['type'] == 'research'), {})
     run_sec = next((s['content'] for s in sections if s['type'] == 'run'), {})
+    if run_sec.get('command', 'docker run --rm').strip().split()[0].lower() == 'singularity':
+        print("\033[93mStreamflow tool generation skipped: Singularity runtime is not supported.\033[0m")
+        return
     tool_name = res_sec.get('name', 'output').replace(" ", "_")
     tool_name_lower = res_sec.get('name', 'output').replace(" ", "_").lower()
     params_lines = []

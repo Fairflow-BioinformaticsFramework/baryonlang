@@ -67,7 +67,7 @@ def gen_python(sections):
     bala_img    = run_sec.get('image', '').strip()
     bala_script = run_sec.get('script', '').strip()
     bala_usage  = run_sec.get('usage', '').strip()
-    full_template = f"{bala_cmd} {bala_img} {bala_script} {bala_usage}"
+    full_template = f" {bala_img} {bala_script} {bala_usage}"
     dynamic_items = []
     for item in sections:
         if item['type'] in ('directory', 'file', 'parameter') and 'name' in item['content']:
@@ -284,8 +284,11 @@ def gen_python(sections):
     w(
         "    # --- Assemble docker command ---",
         f"    cmd = {repr(full_template)}",
-        "    mount_str = ' '.join(mounts)",
-        '    cmd = cmd.replace("docker run", f"docker run {mount_str}", 1)',
+        "    mount_str = ' '.join(mounts)")
+    if bala_cmd.split()[0].lower() == 'singularity':     
+       w( "    mount_str = mount_str.replace('-v \"', '--bind ').replace('\"', '')")
+    w(  
+        f"    cmd = ' '.join(['{bala_cmd}', mount_str, {repr(full_template)}])",          
         "    def replace_placeholder(match):",
         "        key = match.group(1)",
         "        return str(docker_vals.get(key, match.group(0)))",

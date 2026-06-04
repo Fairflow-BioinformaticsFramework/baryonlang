@@ -72,7 +72,6 @@ def gen_bash(sections):
     bala_img    = run_sec.get('image', '').strip()
     bala_script = run_sec.get('script', '').strip()
     bala_usage  = run_sec.get('usage', '').strip()
-    full_template = f"{bala_cmd} {bala_img} {bala_script} {bala_usage}"
 
     dynamic_items = []
     for item in sections:
@@ -330,21 +329,20 @@ def gen_bash(sections):
     # -------------------------------------------------------------------------
     # Assemble and run docker command
     # -------------------------------------------------------------------------
+    full_template = f"{bala_img} {bala_script} {bala_usage}"
+    w('mount_str="${mounts[*]}"')
+    if bala_cmd.split()[0].lower() == 'singularity':
+        w(
+            'mount_str="${mount_str//-v \\"/ --bind }"',
+            'mount_str="${mount_str//\\"}"',
+        )
     w(
-        "# --- Assemble docker command ---",
-        f'cmd="{full_template}"',
-        'mount_str="${mounts[*]}"',
-        'cmd="${cmd/docker run/docker run ${mount_str}}"',
-        "",
-        "# Replace <placeholder> tokens with docker_vals",
+        f'cmd="{bala_cmd} ${{mount_str}} {full_template}"',
         'for key in "${!docker_vals[@]}"; do',
         '    cmd="${cmd//<${key}>/${docker_vals[${key}]}}"',
         "done",
-        "",
         'echo -e "\\n${YELLOW}Running:${RESET}\\n${WHITE}${cmd}${RESET}\\n"',
-        "",
     )
-
     w(
         'log_path="${scratch_path}/output_log.txt"',
         'echo -e "${YELLOW}Log:${RESET} ${WHITE}${log_path}${RESET}\\n"',

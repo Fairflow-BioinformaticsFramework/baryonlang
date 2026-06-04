@@ -7,6 +7,9 @@ def gen_nextflow(sections):
 
     run_sec    = next((s['content'] for s in sections if s['type'] == 'run'), {})
     res_sec    = next((s['content'] for s in sections if s['type'] == 'research'), {})
+    if run_sec.get('command', 'docker run --rm').strip().split()[0].lower() == 'singularity':
+        print("\033[93mNextflow tool generation skipped: Singularity runtime is not supported.\033[0m")
+        return
     tool_id    = res_sec.get('name', 'baryon_tool').lower().replace(" ", "_")
     image      = run_sec.get('image', '').strip()
     script     = run_sec.get('script', '').strip()
