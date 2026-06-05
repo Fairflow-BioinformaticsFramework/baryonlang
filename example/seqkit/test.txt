@@ -1,0 +1,2 @@
+>sequenza_test
+ATGCATGCATGCATGC

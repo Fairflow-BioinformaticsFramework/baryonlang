@@ -231,6 +231,7 @@ When uploading, specify the type as `tar.gz` instead of auto-detect.
 | `index_align_bulk_rna_seq` | Bulk RNA-Seq analysis. Measures average gene expression across a cell population. Expects FASTA and annotation files in `/genome/` and FASTQ reads in `/scratch/`. |
 | `index_align_scrs` | Single-Cell RNA-Seq (scRNA-Seq) analysis. Tracks gene expression at single-cell level using cell barcodes. Same input structure as Bulk RNA-Seq. |
 | `sample_sheetTolibInfo` | Converts experiment metadata from an Excel spreadsheet into a `KEY=VALUE` format readable by downstream HTGTS Bash pipeline scripts. |
+| `seqkit` | A comprehensive toolkit for FASTA/FASTQ file manipulation, filtering, and statistics. *Note: This workflow is specifically used here as a lightweight test to validate Singularity container integration.* |
 | `TopX` | Filters a gene count matrix, selecting the most relevant genes by variance (using edgeR) or by total count. Reads a CSV from `/data/` and writes results to the same folder. |
 
 ---

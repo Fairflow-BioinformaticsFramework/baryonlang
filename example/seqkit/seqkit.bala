@@ -1,0 +1,39 @@
+[research]
+description=atomic parametric filtering
+name=seqkit
+[run]
+command=singularity exec --writable-tmpfs
+script= seqkit
+image= docker://quay.io/biocontainers/seqkit:2.8.1--h9ee0642_0
+usage= <command> -M <length> <filein> -o <outdir>/<fileout>
+#
+[file]
+name=filein
+flag=cp
+description=file to analize
+#
+[directory]
+name=workDir
+description= working directory
+flag=io
+mount=/workDir
+#
+[directory]
+name=outDir
+description= output directory
+mount=/outDir
+flag=out
+#
+[parameter]
+name=fileout
+description= output file name
+#
+[parameter]
+name=command
+values= seq, stats
+description= SeqKit subcommands
+#
+[parameter]
+name=length
+description= SeqKit subcommands
+#
