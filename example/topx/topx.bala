@@ -1,7 +1,6 @@
 [research]
 description=Seleziona i geni con i valori più alti secondo una metrica scelta (espressione o varianza) e restituisce solo i top X dalla matrice di conteggi.
 name=topX
-script=All
 #
 [run]
 command=docker run --rm

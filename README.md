@@ -43,7 +43,6 @@ Contains metadata about the experiment or publication. Only one section is allow
 | Keyword | Description |
 |---|---|
 | `name` | Name of the experiment; used to name the generated scripts. |
-| `script` | Target languages for script generation. Use `all` to generate for every supported platform. |
 | `description` | Optional. Description propagated into generated files. |
 
 #### `[file]`
@@ -137,7 +136,7 @@ Baryon performs the following checks on the `.bala` file before generating scrip
 Baryon supports both **Docker** and **Singularity** as container environments.  
 To use Singularity as a Docker‑compatible backend, simply modify the `run` section by setting:
 
-- `command = singularity exec`
+- `command = singularity exec --writable-tmpfs`
 - prefixing the image name with `docker://`
 
 This allows Baryon to execute containers through Singularity while pulling images from Docker registries.
@@ -153,13 +152,13 @@ When a `.bala` uses Singularity as its Docker environment, **configuration files
 A container-based Workflow Management System designed for complex, distributed data analysis pipelines (such as bioinformatics ones).
 
 **Generated files** (named after the `[research]` name):
-- `<name>_params.yml` — all parameters and file paths (customize this)
+- `<name>-params.yml` — all parameters and file paths (customize this)
 - `<name>.yml` — directory mounts (customize this)
 - `<name>.cwl` — CWL workflow definition (do not modify)
 
 **Philosophy:**
-- All parameters are written to `<name>_params.yml` with descriptions from `description` keywords; default values are set from `value` or the first entry in `values`.
-- All files appear in `<name>_params.yml` as customizable paths.
+- All parameters are written to `<name>-params.yml` with descriptions from `description` keywords; default values are set from `value` or the first entry in `values`.
+- All files appear in `<name>-params.yml` as customizable paths.
 - All directories are mounted in `<name>.yml`.
 - Files with `flag=cp` are copied to `workdir` before the script is called.
 
@@ -233,6 +232,49 @@ When uploading, specify the type as `tar.gz` instead of auto-detect.
 | `index_align_scrs` | Single-Cell RNA-Seq (scRNA-Seq) analysis. Tracks gene expression at single-cell level using cell barcodes. Same input structure as Bulk RNA-Seq. |
 | `sample_sheetTolibInfo` | Converts experiment metadata from an Excel spreadsheet into a `KEY=VALUE` format readable by downstream HTGTS Bash pipeline scripts. |
 | `TopX` | Filters a gene count matrix, selecting the most relevant genes by variance (using edgeR) or by total count. Reads a CSV from `/data/` and writes results to the same folder. |
+
+---
+
+## Running Baryon
+
+Baryon is launched from the command line. All arguments are optional: if omitted,
+Baryon will prompt interactively for any missing information.
+
+```bash
+python baryon.py [BALA_FILE] [--lang LANGUAGE] [--output SCRIPT_NAME] [--overwrite]
+```
+
+### Arguments
+
+| Argument | Short | Description |
+|---|---|---|
+| `BALA_FILE` | | Path or name of the `.bala` file to process. Extension `.bala` can be omitted. If not provided, Baryon lists all `.bala` files in the current directory and lets you choose. |
+| `--lang` | `-l` | Target language to generate. Valid values: `nextflow`, `streamflow`, `galaxy`, `python`, `r`, `bash`, `all`. If not provided, Baryon shows a numbered list to choose from (default: `all`). |
+| `--output` | `-n` | Base name for the generated script files. If not provided, the name is derived from the `name` field in the `[research]` section of the `.bala` file. |
+| `--overwrite` | `-w` | Overwrite existing output files without asking for confirmation. If not set, Baryon will warn and prompt before deleting any existing files. |
+
+### Examples
+
+```bash
+# Fully interactive — Baryon will prompt for file and language
+python baryon.py
+
+# Specify the .bala file; choose language interactively
+python baryon.py HTGTS_Full
+
+# Generate only the R script
+python baryon.py HTGTS_Full --lang r
+
+# Generate all scripts with a custom output base name
+python baryon.py HTGTS_Full --lang all --output my_analysis
+
+# Regenerate without confirmation prompts
+python baryon.py HTGTS_Full --lang python --overwrite
+```
+
+> **Note:** The `--overwrite` flag only checks and removes files relevant to the selected language.
+> For example, `--lang python` will only look for an existing `<name>.py` file,
+> while `--lang all` checks all possible output files.
 
 ---
 

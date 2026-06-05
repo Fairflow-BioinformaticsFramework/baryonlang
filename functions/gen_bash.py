@@ -9,7 +9,7 @@ def parse_values(raw_values):
             tokens.append(token.strip("'\""))
     return tokens
 
-def gen_bash(sections):
+def gen_bash(sections, script_name):
     for item in sections:
         if isinstance(item, dict) and 'content' in item:
             content = item['content']
@@ -20,12 +20,13 @@ def gen_bash(sections):
 
     res_sec   = next((s['content'] for s in sections if s['type'] == 'research'), {})
     run_sec   = next((s['content'] for s in sections if s['type'] == 'run'), {})
-    exec_name = res_sec.get('name', 'baryon_tool').lower().replace(" ", "_")
-
+    raw_name  = script_name or res_sec.get('name', 'baryon_tool')
+    exec_name = raw_name.lower().replace(" ", "_")
+    
     # -------------------------------------------------------------------------
     # Collect directories
     # -------------------------------------------------------------------------
-    directories = {}   # name -> {mount, flag, description}
+    directories = {}   
     for item in sections:
         if item['type'] == 'directory':
             c    = item['content']

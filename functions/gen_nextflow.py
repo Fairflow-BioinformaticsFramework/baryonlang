@@ -1,6 +1,6 @@
 import re
 
-def gen_nextflow(sections):
+def gen_nextflow(sections, script_name):
     config_content = "docker.enabled = true\ndocker.runOptions = ''"
     with open("nextflow.config", "w") as f:
         f.write(config_content)
@@ -10,7 +10,8 @@ def gen_nextflow(sections):
     if run_sec.get('command', 'docker run --rm').strip().split()[0].lower() == 'singularity':
         print("\033[93mNextflow tool generation skipped: Singularity runtime is not supported.\033[0m")
         return
-    tool_id    = res_sec.get('name', 'baryon_tool').lower().replace(" ", "_")
+    raw_name  = script_name or res_sec.get('name', 'baryon_tool')
+    tool_id = raw_name.lower().replace(" ", "_")
     image      = run_sec.get('image', '').strip()
     script     = run_sec.get('script', '').strip()
     directories = [s['content'] for s in sections if s['type'] == 'directory' and s['content']['name'].lower() != 'workdir']

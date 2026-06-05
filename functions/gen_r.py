@@ -8,7 +8,7 @@ def parse_values(raw_values):
         if token:
             tokens.append(token.strip("'\""))
     return tokens
-def gen_erre(sections):
+def gen_r(sections, script_name):
     for item in sections:
         if isinstance(item, dict) and 'content' in item:
             content = item['content']
@@ -20,7 +20,8 @@ def gen_erre(sections):
                     content['description'] = desc
     res_sec   = next((s['content'] for s in sections if s['type'] == 'research'), {})
     run_sec   = next((s['content'] for s in sections if s['type'] == 'run'), {})
-    exec_name = res_sec.get('name', 'baryon_tool').lower().replace(" ", "_")
+    raw_name  = script_name or res_sec.get('name', 'baryon_tool')
+    exec_name = raw_name.lower().replace(" ", "_")
     # -------------------------------------------------------------------------
     # Collect directories
     # -------------------------------------------------------------------------

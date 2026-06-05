@@ -14,14 +14,14 @@ def restore_cdata_quotes(xml_string):
         return match.group(0).replace("&quot;", '"')
     return re.sub(r'<!\[CDATA\[.*?\]\]>', fix_cdata, xml_string, flags=re.DOTALL)
 
-def gen_galaxy(sections):
+def gen_galaxy(sections, script_name):
     res_sec = next((s['content'] for s in sections if s['type'] == 'research'), {})
     run_sec = next((s['content'] for s in sections if s['type'] == 'run'), {})
     if run_sec.get('command', 'docker run --rm').strip().split()[0].lower() == 'singularity':
         print("\033[93mGalaxy tool generation skipped: Singularity runtime is not supported.\033[0m")
         return
-    tool_name       = res_sec.get('name', 'output').replace(" ", "_")
-    tool_name_lower = tool_name.lower()
+    raw_name  = script_name or res_sec.get('name', 'baryon_tool')
+    tool_name = raw_name.lower().replace(" ", "_")
     def is_input(flag):
         return flag in ('in', 'io')
     def is_output(flag):
@@ -73,7 +73,7 @@ def gen_galaxy(sections):
         variants.append('targz')
     for variant in variants:
         suffix = "_targz" if variant == 'targz' else ""
-        current_id = f"{tool_name_lower}{suffix}"
+        current_id = f"{tool_name}{suffix}"
         current_name = f"{tool_name}{suffix}"
         tool = ET.Element("tool", id=current_id, name=current_name, version="1.0.0")
         ET.SubElement(tool, "description").text = res_sec.get('description', '')

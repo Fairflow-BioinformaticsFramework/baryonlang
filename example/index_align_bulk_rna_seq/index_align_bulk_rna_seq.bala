@@ -1,7 +1,6 @@
 [research]
 description=Funzione per eseguire l'allineamento e l'indicizzazione
 name=index_align_bulk_rna_seq
-script=Python, Galaxy, R, Bash, Fairflow, Nextflow, Streamflow
 
 [run]
 command=docker run --rm 

@@ -1,7 +1,6 @@
 [research]
 description=produce in output il file fof.txt e rof.txt nella cartella outdir
 name=sample_sheetTolibInfo
-script=All
 #
 [run]
 command=docker run --rm -v <workDir>:/work -v <outDir>:/Out
