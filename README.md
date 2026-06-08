@@ -235,14 +235,13 @@ When uploading, specify the type as `tar.gz` instead of auto-detect.
 | `TopX` | Filters a gene count matrix, selecting the most relevant genes by variance (using edgeR) or by total count. Reads a CSV from `/data/` and writes results to the same folder. |
 
 ---
-
 ## Running Baryon
 
 Baryon is launched from the command line. All arguments are optional: if omitted,
 Baryon will prompt interactively for any missing information.
 
 ```bash
-python baryon.py [BALA_FILE] [--lang LANGUAGE] [--output SCRIPT_NAME] [--overwrite]
+python baryon.py [BALA_FILE] [--lang LANGUAGE] [--output SCRIPT_NAME] [--overwrite] [--generate_function]
 ```
 
 ### Arguments
@@ -253,6 +252,7 @@ python baryon.py [BALA_FILE] [--lang LANGUAGE] [--output SCRIPT_NAME] [--overwri
 | `--lang` | `-l` | Target language to generate. Valid values: `nextflow`, `streamflow`, `galaxy`, `python`, `r`, `bash`, `all`. If not provided, Baryon shows a numbered list to choose from (default: `all`). |
 | `--output` | `-n` | Base name for the generated script files. If not provided, the name is derived from the `name` field in the `[research]` section of the `.bala` file. |
 | `--overwrite` | `-w` | Overwrite existing output files without asking for confirmation. If not set, Baryon will warn and prompt before deleting any existing files. |
+| `--generate_function` | `-f` | Generate Python, R, and Bash scripts as self-contained functions instead of standalone scripts. Has no effect on `nextflow`, `streamflow`, or `galaxy` targets. |
 
 ### Examples
 
@@ -271,12 +271,21 @@ python baryon.py HTGTS_Full --lang all --output my_analysis
 
 # Regenerate without confirmation prompts
 python baryon.py HTGTS_Full --lang python --overwrite
+
+# Generate Python and R scripts as functions instead of standalone scripts
+python baryon.py HTGTS_Full --lang python --generate_function
+python baryon.py HTGTS_Full --lang all -f
 ```
 
 > **Note:** The `--overwrite` flag only checks and removes files relevant to the selected language.
 > For example, `--lang python` will only look for an existing `<name>.py` file,
 > while `--lang all` checks all possible output files.
 
+> **Note:** The `--generate_function` flag applies only to `python`, `r`, and `bash` targets.
+> When used with `--lang all`, `nextflow`, `streamflow`, and `galaxy` scripts are generated
+> normally as standalone workflows.
+
+---
 ---
 
 ## Useful Commands

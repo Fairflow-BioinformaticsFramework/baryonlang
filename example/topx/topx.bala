@@ -1,5 +1,5 @@
 [research]
-description=Seleziona i geni con i valori più alti secondo una metrica scelta (espressione o varianza) e restituisce solo i top X dalla matrice di conteggi.
+description=Selects genes with the highest values according to a chosen metric (expression or variance) and returns only the top X from the count matrix.
 name=topX
 #
 [run]
@@ -10,42 +10,42 @@ usage= <matrixName> <format> <separator> <logged> <threshold> <type>
 #
 [directory]
 name=workDir
-description=percorso cartella di lavoro
+description=Path to the working directory
 flag=io
 mount=/workdir
 #
 [directory]
 name=data
-description=percorso cartella contenente i dati e ricevente i risultati 
+description=Path to the folder containing input data and receiving output results
 mount=/data
 flag=io
 #
 [parameter]
 name=matrixName
-description=name del file di input senza estensione
+description=Input file name without extension
 value=annotated
 #
 [parameter]
 name=format
 values=csv, txt
-description=formato del file di input
+description=Input file format
 #
 [parameter]
 name=threshold
-description= Soglia per selezionare i geni top (solitamente fra 10 e 2000 a seconda delle dimensioni del datase)
+description=Threshold for selecting top genes (typically between 10 and 2000 depending on dataset size)
 value=10
 #
 [parameter]
 name=separator
 values=',','\t'
-description= Separatore del file (Separatore usato nel file Usare "," per CSV, "\t" per TSV)
+description=File separator (use "," for CSV, "\t" for TSV)
 #
 [parameter]
 name=logged
 values=FALSE,TRUE
-description= Indica se i valori della matrice di conteggi sono già log‑trasformati (TRUE) oppure no (FALSE).
+description=Indicates whether the count matrix values are already log-transformed (TRUE) or not (FALSE).
 #
 [parameter]
 name=type
 values=expression, variance
-description= Tipo di analisi da eseguire.
+description=Type of analysis to perform.

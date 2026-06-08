@@ -21,7 +21,7 @@ import sys
 
 VALID_LANGUAGES = ['nextflow', 'streamflow', 'galaxy', 'python', 'r', 'bash', 'all']
 
-# Files produced by each language generator
+# --------------------------- Files produced by each language generator -------------------------------------------------
 LANGUAGE_FILES = {
     'nextflow':   lambda tool_id: [f"{tool_id}.nf", "nextflow.config", f"{tool_id}_nextflow.txt"],
     'streamflow': lambda tool_id: [f"{tool_id}.cwl", f"{tool_id}-params.yml", f"{tool_id}.yml"],
@@ -111,9 +111,8 @@ def resolve_language(lang_arg):
         sys.exit(1)
     return value
 
-# ----------------------------------------------------------------------------------------------------------------------
 # -------------------------- get candidate files for language ----------------------------------------------------------
-# ----------------------------------------------------------------------------------------------------------------------
+
 def get_candidate_files(language, tool_id):
     if language == 'all':
         candidates = []
@@ -174,6 +173,12 @@ def main():
         default=False,
         help="Overwrite existing output files without asking for confirmation"
     )
+    parser.add_argument(
+    "--generate_function", "-f",
+    action="store_true",
+    default=False,
+    help="Generate R, Bash, and Python scripts as functions instead of standalone scripts"
+    )
 
     args = parser.parse_args()
     bala_filename = resolve_bala_file(args.bala_file)
@@ -223,12 +228,11 @@ def main():
     if language in ('galaxy', 'all'):
         gen_galaxy(sections, script_name)
     if language in ('python', 'all'):
-        gen_python(sections, script_name)
+        gen_python(sections, script_name, as_function=args.generate_function)
     if language in ('r', 'all'):
-        gen_r(sections, script_name)
+        gen_r(sections, script_name, as_function=args.generate_function)
     if language in ('bash', 'all'):
-        gen_bash(sections, script_name)
-
+        gen_bash(sections, script_name, as_function=args.generate_function)
 
 if __name__ == "__main__":
     if os.name == 'nt':

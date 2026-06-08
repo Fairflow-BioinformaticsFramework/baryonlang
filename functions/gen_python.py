@@ -9,7 +9,7 @@ def parse_values(raw_values):
             tokens.append(token.strip("'\""))
     return tokens
 
-def gen_python(sections, script_name):
+def gen_python(sections, script_name, as_function=False):
     for item in sections:
         if isinstance(item, dict) and 'content' in item:
             content = item['content']
@@ -21,10 +21,8 @@ def gen_python(sections, script_name):
     run_sec   = next((s['content'] for s in sections if s['type'] == 'run'), {})
     raw_name  = script_name or res_sec.get('name', 'baryon_tool')
     exec_name = raw_name.lower().replace(" ", "_")
-    # -------------------------------------------------------------------------
-    # Collect directories
-    # -------------------------------------------------------------------------
-    directories = {}   # name -> {mount, flag, description}
+    # -------------------------- Collect directories ---------------------
+    directories = {}   
     for item in sections:
         if item['type'] == 'directory':
             c    = item['content']
@@ -36,9 +34,7 @@ def gen_python(sections, script_name):
             }
     has_workdir = 'workdir' in directories
     has_outdir  = 'outdir'  in directories
-    # -------------------------------------------------------------------------
-    # Collect files
-    # -------------------------------------------------------------------------
+    # ------------------------- Collect files ----------------------
     files = []
     for item in sections:
         if item['type'] == 'file':
@@ -48,9 +44,7 @@ def gen_python(sections, script_name):
                 'flag':        c.get('flag', 'cp').strip().lower(),
                 'description': c.get('description', ''),
             })
-    # -------------------------------------------------------------------------
-    # Collect parameters and their allowed values
-    # -------------------------------------------------------------------------
+    # ------------------- Collect parameters and their allowed values --------------------
     parameters = []
     for item in sections:
         if item['type'] == 'parameter':
@@ -61,9 +55,7 @@ def gen_python(sections, script_name):
                 'description': c.get('description', ''),
                 'values':      parse_values(raw_values),
             })
-    # -------------------------------------------------------------------------
-    # Build docker command template
-    # -------------------------------------------------------------------------
+    # ------------------- Build docker command template -------------------
     bala_cmd    = run_sec.get('command', 'docker run --rm').strip()
     bala_img    = run_sec.get('image', '').strip()
     bala_script = run_sec.get('script', '').strip()
@@ -74,73 +66,117 @@ def gen_python(sections, script_name):
         if item['type'] in ('directory', 'file', 'parameter') and 'name' in item['content']:
             dynamic_items.append(item)
     TYPE_COLORS = {
-        'directory': '\\033[93m',   # yellow
-        'file':      '\\033[38;5;208m',  # orange
-        'parameter': '\\033[92m',   # green
+        'directory': '\\033[93m',   
+        'file':      '\\033[38;5;208m',  
+        'parameter': '\\033[92m',   
     }
     DEFAULT_COLOR = '\\033[97m'
-    # -------------------------------------------------------------------------
-    # Start building the generated script lines
-    # -------------------------------------------------------------------------
-    L = []  # lines
+    # --------------------------- Start building the generated script lines -----------------
+    L = []  
     def w(*lines):
         for line in lines:
             L.append(line)
-    w(
-        "import os, sys, shutil, subprocess, re",
-        "",
-        "# ANSI color codes",
-        "RED    = '\\033[91m'",
-        "WHITE  = '\\033[97m'",
-        "YELLOW = '\\033[93m'",
-        "ORANGE = '\\033[38;5;208m'",
-        "GREEN  = '\\033[92m'",
-        "RESET  = '\\033[0m'",
-        "",
-        "",
-        "def main():",
-        "    if os.name == 'nt':",
-        "        os.system('color')",
-        "",
-    )
-    # --- Build usage string ---
+    if as_function:
+        func_args = ", ".join(f"{item['content']['name']}=None" for item in dynamic_items)
+        w(
+            "import os, sys, shutil, subprocess, re",
+            "",
+            "# ANSI color codes",
+            "RED    = '\\033[91m'",
+            "WHITE  = '\\033[97m'",
+            "YELLOW = '\\033[93m'",
+            "ORANGE = '\\033[38;5;208m'",
+            "GREEN  = '\\033[92m'",
+            "RESET  = '\\033[0m'",
+            "",
+            "",
+            f"def {exec_name}({func_args}):",
+            "    if os.name == 'nt':",
+            "        os.system('color')",
+            "",
+        )
+    else:
+        w(
+            "import os, sys, shutil, subprocess, re",
+            "",
+            "# ANSI color codes",
+            "RED    = '\\033[91m'",
+            "WHITE  = '\\033[97m'",
+            "YELLOW = '\\033[93m'",
+            "ORANGE = '\\033[38;5;208m'",
+            "GREEN  = '\\033[92m'",
+            "RESET  = '\\033[0m'",
+            "",
+            "",
+            "def main():",
+            "    if os.name == 'nt':",
+            "        os.system('color')",
+            "",
+        )
+    # -------------------------- Build usage string ----------------------
     usage_parts = []
     for item in dynamic_items:
         name  = item['content']['name']
         color = TYPE_COLORS.get(item['type'], DEFAULT_COLOR)
         usage_parts.append(f"f'{color}<{name}>{{RESET}}'")
-    w(f"    usage_str = ' '.join([{', '.join(usage_parts)}])")
-    w("")
-    # --- Expected argument count ---
-    n_args = len(dynamic_items)
-    research_desc = res_sec.get('description', '')
-    w(
-        f"    if len(sys.argv) != {n_args + 1}:",
-        f"        print(f'{{WHITE}}Usage: python {exec_name}.py {{usage_str}}{{RESET}}\\n')",
-    )
-    if research_desc:
-        w(f"        print(f'{{YELLOW}}{research_desc}{{RESET}}\\n')")
-    w("        print(f'{WHITE}Arguments:{RESET}')")
-    for item in dynamic_items:
-        name  = item['content']['name']
-        color = TYPE_COLORS.get(item['type'], DEFAULT_COLOR)
-        desc  = item['content'].get('description', '')
-        flag  = item['content'].get('flag', '')
-        flag_str = f" [{flag}]" if flag else ""
-        w(f"        print(f'{color}{name.ljust(15)}{{RESET}}{flag_str.ljust(6)} {desc}')")
-    w(
-        "        sys.exit(1)",
-        "",
-        "    # Parse positional arguments",
-        "    args = {}",
-    )
-    for idx, item in enumerate(dynamic_items):
-        name = item['content']['name']
-        w(f"    args['{name}'] = sys.argv[{idx + 1}]")
-    w("")
-    # -------------------------------------------------------------------------
-    # Validation block
-    # -------------------------------------------------------------------------
+
+    if not as_function:
+        w(f"    usage_str = ' '.join([{', '.join(usage_parts)}])")
+        w("")
+        n_args = len(dynamic_items)
+        research_desc = res_sec.get('description', '')
+        w(
+            f"    if len(sys.argv) != {n_args + 1}:",
+            f"        print(f'{{WHITE}}Usage: python {exec_name}.py {{usage_str}}{{RESET}}\\n')",
+        )
+        if research_desc:
+            w(f"        print(f'{{YELLOW}}{research_desc}{{RESET}}\\n')")
+        w("        print(f'{WHITE}Arguments:{RESET}')")
+        for item in dynamic_items:
+            name  = item['content']['name']
+            color = TYPE_COLORS.get(item['type'], DEFAULT_COLOR)
+            desc  = item['content'].get('description', '')
+            flag  = item['content'].get('flag', '')
+            flag_str = f" [{flag}]" if flag else ""
+            w(f"        print(f'{color}{name.ljust(15)}{{RESET}}{flag_str.ljust(6)} {desc}')")
+        w(
+            "        sys.exit(1)",
+            "",
+            "    # Parse positional arguments",
+            "    args = {}",
+        )
+        for idx, item in enumerate(dynamic_items):
+            name = item['content']['name']
+            w(f"    args['{name}'] = sys.argv[{idx + 1}]")
+        w("")
+    else:
+        func_params = [item['content']['name'] for item in dynamic_items]
+        w("    args = {}")
+        for item in dynamic_items:
+            name = item['content']['name']
+            w(f"    args['{name}'] = {name}")
+        w("")
+        usage_parts_str = ' '.join(f'<{n}>' for n in func_params)
+        w(
+            f"    if any(v is None for v in [{', '.join(func_params)}]):",
+            f"        print(f'{{WHITE}}Usage: {exec_name}({usage_parts_str}){{RESET}}\\n')",
+        )
+        research_desc = res_sec.get('description', '')
+        if research_desc:
+            w(f"        print(f'{{YELLOW}}{research_desc}{{RESET}}\\n')")
+        w("        print(f'{WHITE}Arguments:{RESET}')")
+        for item in dynamic_items:
+            name  = item['content']['name']
+            color = TYPE_COLORS.get(item['type'], DEFAULT_COLOR)
+            desc  = item['content'].get('description', '')
+            flag  = item['content'].get('flag', '')
+            flag_str = f" [{flag}]" if flag else ""
+            w(f"        print(f'{color}{name.ljust(15)}{{RESET}}{flag_str.ljust(6)} {desc}')")
+        w(
+            "        raise ValueError('Missing required arguments')",
+            "",
+        )
+    # --------------------------------  Validation block --------------------------
     w("    # --- Input validation ---")
     w("    errors = []")
     w("")
@@ -169,14 +205,24 @@ def gen_python(sections, script_name):
             f"    if args['{name}'] not in {allowed_repr}:",
             f'        errors.append(f"""Invalid value for {name}: {{args["{name}"]}}. Allowed: {p["values"]}""")'
         )
-    w(
-        "",
-        "    if errors:",
-        "        for e in errors:",
-        "            print(f'{RED}ERROR:{RESET} {WHITE}{e}{RESET}')",
-        "        sys.exit(1)",
-        "",
-    )
+    if as_function:
+        w(
+            "",
+            "    if errors:",
+            "        for e in errors:",
+            "            print(f'{RED}ERROR:{RESET} {WHITE}{e}{RESET}')",
+            "        raise ValueError('Input validation failed')",
+            "",
+        )
+    else:
+        w(
+            "",
+            "    if errors:",
+            "        for e in errors:",
+            "            print(f'{RED}ERROR:{RESET} {WHITE}{e}{RESET}')",
+            "        sys.exit(1)",
+            "",
+        )
     w(
         "    # --- Scratch directory setup ---",
         "    n = 1",
@@ -185,7 +231,6 @@ def gen_python(sections, script_name):
     conds = ["os.path.exists(os.path.join(os.path.abspath(args['workdir']), f'scratch{n}'))"]
     if has_outdir:
         conds.append("os.path.exists(os.path.join(os.path.abspath(args['outdir']), f'scratch{n}'))")
-        
     w(f"        if {' or '.join(conds)}:")
     w("            n += 1")
     w("        else:")
@@ -202,9 +247,7 @@ def gen_python(sections, script_name):
             "    os.makedirs(scratch_out_path, exist_ok=True)",
         )
     w("")
-    # -------------------------------------------------------------------------
-    # Docker volume mounts construction
-    # -------------------------------------------------------------------------
+    # --------------------- Docker volume mounts construction ---------------------------
     w("    # --- Build docker volume mounts ---")
     w("    mounts = []")
     w("    docker_vals = {}   # placeholder -> docker-internal path")
@@ -248,11 +291,9 @@ def gen_python(sections, script_name):
         "    # --- Bind files and service volumes ---",
         "    mounted_folders = {}", 
     )
-
     for f in files:
         name = f['name']
         flag = f['flag']
-        
         if flag == 'cp' or flag not in ('ro', 'nc'):
             wdir_mount = directories.get('workdir', {}).get('mount', '/workdir')
             w(
@@ -261,7 +302,6 @@ def gen_python(sections, script_name):
                 f"    docker_vals['{name}'] = f'{wdir_mount}/{{os.path.basename(_src_{name})}}'",
                 "",
             )
-            
         elif flag in ('ro', 'nc'):
             w(
                 f"    _src_{name} = os.path.abspath(args['{name}'])",
@@ -278,10 +318,7 @@ def gen_python(sections, script_name):
         name = p['name']
         w(f"    docker_vals['{name}'] = args['{name}']")
     w("")
-
-    # -------------------------------------------------------------------------
-    # Assemble and run docker command
-    # -------------------------------------------------------------------------
+    # --------------------------------- Assemble and run docker command -----------------------------
     w(
         "    # --- Assemble docker command ---",
         f"    cmd = {repr(full_template)}",
@@ -312,20 +349,29 @@ def gen_python(sections, script_name):
         "            sys.stdout.write(line)",
         "            log_f.write(line)",
         "        p.wait()",
-        "",
-        "    if p.returncode == 0:",
-        "        print(f'\\n{GREEN}Done. Log saved to: {log_path}{RESET}')",
-        "    else:",
-        "        print(f'\\n{RED}Docker exited with code {p.returncode}. See log: {log_path}{RESET}')",
-        "    sys.exit(p.returncode)",
-        "",
-        "",
-        "if __name__ == '__main__':",
-        "    main()",
+        ""
     )
-    # -------------------------------------------------------------------------
-    # Write output file
-    # -------------------------------------------------------------------------
+    if as_function:
+        w(
+            "    if p.returncode == 0:",
+            "        print(f'\\n{GREEN}Done. Log saved to: {log_path}{RESET}')",
+            "    else:",
+            "        print(f'\\n{RED}Docker exited with code {p.returncode}. See log: {log_path}{RESET}')",
+            "    return p.returncode",
+        )
+    else:
+        w(
+            "    if p.returncode == 0:",
+            "        print(f'\\n{GREEN}Done. Log saved to: {log_path}{RESET}')",
+            "    else:",
+            "        print(f'\\n{RED}Docker exited with code {p.returncode}. See log: {log_path}{RESET}')",
+            "    sys.exit(p.returncode)",
+            "",
+            "",
+            "if __name__ == '__main__':",
+            "    main()",
+        )
+    # -------------------- Write output file ----------------
     output_filename = f"{exec_name}.py"
     with open(output_filename, "w", encoding="utf-8") as out_f:
         out_f.write("\n".join(L))
