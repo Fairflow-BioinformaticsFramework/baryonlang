@@ -1,3 +1,13 @@
+Metadata-Version: 2.4
+Name: baryonlang
+Version: 1.1.0
+Summary: Generates execution scripts (Python, R, Bash, Nextflow, Streamflow, Galaxy) for bioinformatics pipelines from .bala configuration files
+Author: Fairflow Bioinformatics Framework
+License-Expression: MIT
+Keywords: bioinformatics,workflow,nextflow,galaxy,streamflow
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+
 # Baryon
 
 **Baryon** is a tool that enables bioinformatics workflows to run across different environments and operating systems without any manual conversion or adaptation. Researchers simply describe their pipeline once in a `.bala` configuration file, and Baryon takes care of generating ready-to-use scripts for multiple execution platforms.
@@ -320,52 +330,4 @@ docker run --rm -it \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v "${PWD}:/workflow" -w /workflow \
   streamflow-unito-local streamflow run sample_sheetToLibInfo.yml
-```
----
-
-## Installation
-
-Baryon can be installed as a regular Python package, which makes the `baryon` command available system-wide (no need to call `python baryon.py` from inside the repo).
-
-### Requirements
-
-- Python ≥ 3.9
-- `pip`
-
-### Install from source (recommended for now)
-
-Clone the repository and install it in editable mode from the **repository root** (the folder containing `pyproject.toml`):
-
-```bash
-git clone https://github.com/Fairflow-BioinformaticsFramework/Baryonlang.git
-cd Baryonlang
-pip install -e .
-```
-
-Editable mode (`-e`) means any change you make to the source code is immediately reflected without reinstalling — useful for development.
-
-### Install directly from GitHub
-
-If you just want to use Baryon without cloning the repo manually:
-
-```bash
-pip install git+https://github.com/Fairflow-BioinformaticsFramework/Baryonlang.git
-```
-
-### Verify the installation
-
-```bash
-baryon --help
-```
-
-If the command is found and the help message is printed, the installation was successful. You can now run `baryon` from **any directory**, exactly as you would with `python baryon.py`:
-
-```bash
-baryon HTGTS_Full --lang python
-```
-
-### Uninstall
-
-```bash
-pip uninstall baryonlang
 ```

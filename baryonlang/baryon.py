@@ -5,14 +5,14 @@
 # Version   : 1.1
 # ----------------------------------------------------------------------------------------------------------------------
 
-from functions.gen_nextflow import gen_nextflow
-from functions.gen_streamflow import gen_streamflow
-from functions.gen_galaxy import gen_galaxy
-from functions.gen_python import gen_python
-from functions.gen_r import gen_r
-from functions.gen_bash import gen_bash
-from functions.parse_and_validate import parse_and_validate
-from functions.colors import WHITE, BLUE, YELLOW, ORANGE, RED, GREEN, GRAY, PINK, BROWN, RESET
+from baryonlang.functions.gen_nextflow import gen_nextflow
+from baryonlang.functions.gen_streamflow import gen_streamflow
+from baryonlang.functions.gen_galaxy import gen_galaxy
+from baryonlang.functions.gen_python import gen_python
+from baryonlang.functions.gen_r import gen_r
+from baryonlang.functions.gen_bash import gen_bash
+from baryonlang.functions.parse_and_validate import parse_and_validate
+from baryonlang.functions.colors import WHITE, BLUE, YELLOW, ORANGE, RED, GREEN, GRAY, PINK, BROWN, RESET
 
 import argparse
 import os
@@ -140,6 +140,8 @@ def display_summary(sections):
 # -------------------------- M A I N ----------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------------------------
 def main():
+    if os.name == 'nt':
+        os.system('color')
     parser = argparse.ArgumentParser(
         description="Baryon — Bioinformatics script generator from .bala files",
         formatter_class=argparse.RawTextHelpFormatter
@@ -235,6 +237,4 @@ def main():
         gen_bash(sections, script_name, as_function=args.generate_function)
 
 if __name__ == "__main__":
-    if os.name == 'nt':
-        os.system('color')
     main()

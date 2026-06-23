@@ -1,5 +1,5 @@
 # -------------------------- validate file bala and load dictionary (section) ------------------------------------------
-from functions.colors import WHITE, BLUE, YELLOW, ORANGE, RED, GREEN, GRAY, PINK, BROWN, RESET
+from baryonlang.functions.colors import WHITE, BLUE, YELLOW, ORANGE, RED, GREEN, GRAY, PINK, BROWN, RESET
 import re
 import os
 
