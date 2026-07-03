@@ -1,6 +1,5 @@
 [research]
-description=atomic parametric filtering
-name=seqkit
+description=A comprehensive toolkit for FASTA/FASTQ file manipulation, filtering, and statistics.
 [run]
 command=singularity exec --writable-tmpfs
 script= seqkit
@@ -31,9 +30,10 @@ description= output file name
 [parameter]
 name=command
 values= seq, stats
-description= SeqKit subcommands
+description= SeqKit subcommands to run
 #
 [parameter]
 name=length
-description= SeqKit subcommands
+description= maximum sequence length to keep (-M option)
+#
 #

@@ -17,12 +17,12 @@ def main():
 
     if len(sys.argv) != 5:
         print(f'{WHITE}Usage: python sample_sheettolibinfo.py {usage_str}{RESET}\n')
-        print(f'{YELLOW}produce in output il file fof.txt e rof.txt nella cartella outdir{RESET}\n')
+        print(f'{YELLOW}Converts experiment metadata from an Excel spreadsheet into a KEY=VALUE format readable by downstream HTGTS Bash pipeline scripts.{RESET}\n')
         print(f'{WHITE}Arguments:{RESET}')
-        print(f'\033[93mworkdir        {RESET} [io]  percorso cartella di lavoro')
-        print(f'\033[93moutdir         {RESET} [out] percorso cartella di output')
-        print(f'\033[38;5;208mxmlfile        {RESET} [nc]  name del file xml')
-        print(f'\033[92mconfigtype     {RESET}       tipo di cellule')
+        print(f'\033[93mworkdir        {RESET} [io]  working directory path')
+        print(f'\033[93moutdir         {RESET} [out] output directory path')
+        print(f'\033[38;5;208mxmlfile        {RESET} [nc]  name of the xml file')
+        print(f'\033[92mconfigtype     {RESET}       cell type')
         sys.exit(1)
 
     # Parse positional arguments
@@ -88,9 +88,9 @@ def main():
     docker_vals['configtype'] = args['configtype']
 
     # --- Assemble docker command ---
-    cmd = 'docker run --rm -v <workdir>:/work -v <outdir>:/Out repbioinfo/htgts_pipeline_lts_v16:latest python3 /Algorithm/sample_sheetTolibInfo.py <xmlfile> <outdir>/fof.txt <outdir>/rof.txt <configtype>'
+    cmd = ' repbioinfo/htgts_pipeline_lts_v16:latest python3 /Algorithm/sample_sheetTolibInfo.py <xmlfile> <outdir>/fof.txt <outdir>/rof.txt <configtype>'
     mount_str = ' '.join(mounts)
-    cmd = cmd.replace("docker run", f"docker run {mount_str}", 1)
+    cmd = ' '.join(['docker run --rm -v <workdir>:/work -v <outdir>:/Out', mount_str, ' repbioinfo/htgts_pipeline_lts_v16:latest python3 /Algorithm/sample_sheetTolibInfo.py <xmlfile> <outdir>/fof.txt <outdir>/rof.txt <configtype>'])
     def replace_placeholder(match):
         key = match.group(1)
         return str(docker_vals.get(key, match.group(0)))

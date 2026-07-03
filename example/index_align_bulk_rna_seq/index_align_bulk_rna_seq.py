@@ -17,11 +17,11 @@ def main():
 
     if len(sys.argv) != 4:
         print(f'{WHITE}Usage: python index_align_bulk_rna_seq.py {usage_str}{RESET}\n')
-        print(f'{YELLOW}Funzione per eseguire l\'allineamento e l\'indicizzazione{RESET}\n')
+        print(f'{YELLOW}Bulk RNA-Seq analysis. Measures average gene expression across a cell population.{RESET}\n')
         print(f'{WHITE}Arguments:{RESET}')
-        print(f'\033[93mworkdir        {RESET} [io]  percorso cartella di lavoro')
-        print(f'\033[93mgenome         {RESET} [io]  percorso cartella di lavoro, Genome')
-        print(f'\033[93mscratch        {RESET} [io]  percorso cartella Data, qui viene salvato il log e andrebbero piazzati i file di output. Scratch')
+        print(f'\033[93mworkdir        {RESET} [io]  working directory path')
+        print(f'\033[93mgenome         {RESET} [io]  genome directory path')
+        print(f'\033[93mscratch        {RESET} [io]  scratch directory path(Data)')
         sys.exit(1)
 
     # Parse positional arguments
@@ -76,9 +76,9 @@ def main():
     mounted_folders = {}
 
     # --- Assemble docker command ---
-    cmd = 'docker run --rm repbioinfo/rnaseqstar_v2 /home/index_align.sh '
+    cmd = ' repbioinfo/rnaseqstar_v2 /home/index_align.sh '
     mount_str = ' '.join(mounts)
-    cmd = cmd.replace("docker run", f"docker run {mount_str}", 1)
+    cmd = ' '.join(['docker run --rm', mount_str, ' repbioinfo/rnaseqstar_v2 /home/index_align.sh '])
     def replace_placeholder(match):
         key = match.group(1)
         return str(docker_vals.get(key, match.group(0)))

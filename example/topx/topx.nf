@@ -2,17 +2,17 @@ nextflow.enable.dsl=2
 
 /*
  * Pipeline: topx
- * Description: Seleziona i geni con i valori più alti secondo una metrica scelta (espressione o varianza) e restituisce solo i top X dalla matrice di conteggi.
+ * Description: Filters a gene count matrix, selecting the most relevant genes by variance (using edgeR) or by total count.
  */
 
 // --- PARAMETERS ---
-params.data = "/path/to/directory/data" // percorso cartella contenente i dati e ricevente i risultati
-params.matrixname = "annotated" // name del file di input senza estensione 
-params.format = "csv" // formato del file di input  - Possible values: csv, txt
-params.threshold = "10" // Soglia per selezionare i geni top (solitamente fra 10 e 2000 a seconda delle dimensioni del datase) 
-params.separator = "," // Separatore del file (Separatore usato nel file Usare "," per CSV, "\t" per TSV)  - Possible values: ',','\t'
-params.logged = "FALSE" // Indica se i valori della matrice di conteggi sono già log‑trasformati (TRUE) oppure no (FALSE).  - Possible values: FALSE,TRUE
-params.type = "expression" // Tipo di analisi da eseguire.  - Possible values: expression, variance
+params.data = "/path/to/directory/data" // Path to the folder containing input data and receiving output results
+params.matrixname = "annotated" // Input file name without extension 
+params.format = "csv" // Input file format  - Possible values: csv, txt
+params.threshold = "10" // Threshold for selecting top genes (typically between 10 and 2000 depending on dataset size) 
+params.separator = "," // File separator (use "," for CSV, "\t" for TSV)  - Possible values: ',','\t'
+params.logged = "FALSE" // Indicates whether the count matrix values are already log-transformed (TRUE) or not (FALSE).  - Possible values: FALSE,TRUE
+params.type = "expression" // Type of analysis to perform.  - Possible values: expression, variance
 
 process TOPX {
     container 'repbioinfo/topxv2:1'

@@ -10,19 +10,19 @@ cat_col <- function(..., color = WHITE) {
   cat(color, ..., RESET, '\n', sep = '')
 }
 
-usage_str <- paste0(paste0("\033[93m<workdir", RESET), ' ', paste0("\033[93m<outdir", RESET), ' ', paste0("\033[38;5;208m<xmlfile", RESET), ' ', paste0("\033[92m<configtype", RESET))
+usage_str <- paste0(paste0("\033[93m<workdir>", RESET), ' ', paste0("\033[93m<outdir>", RESET), ' ', paste0("\033[38;5;208m<xmlfile>", RESET), ' ', paste0("\033[92m<configtype>", RESET))
 
 args_raw <- commandArgs(trailingOnly = TRUE)
 
 if (length(args_raw) != 4) {
   cat(WHITE, 'Usage: Rscript sample_sheettolibinfo.R ', usage_str, RESET, '\n\n', sep = '')
-  cat_col("produce in output il file fof.txt e rof.txt nella cartella outdir", color = YELLOW)
+  cat_col("Converts experiment metadata from an Excel spreadsheet into a KEY=VALUE format readable by downstream HTGTS Bash pipeline scripts.", color = YELLOW)
   cat('\n')
   cat_col('Arguments:', color = WHITE)
-  cat('\033[93mworkdir         [io]  percorso cartella di lavoro', RESET, '\n', sep = '')
-  cat('\033[93moutdir          [out] percorso cartella di output', RESET, '\n', sep = '')
-  cat('\033[38;5;208mxmlfile         [nc]  name del file xml', RESET, '\n', sep = '')
-  cat('\033[92mconfigtype            tipo di cellule', RESET, '\n', sep = '')
+  cat('\033[93mworkdir         [io]  working directory path', RESET, '\n', sep = '')
+  cat('\033[93moutdir          [out] output directory path', RESET, '\n', sep = '')
+  cat('\033[38;5;208mxmlfile         [nc]  name of the xml file', RESET, '\n', sep = '')
+  cat('\033[92mconfigtype            cell type', RESET, '\n', sep = '')
   quit(status = 1)
 }
 
@@ -97,25 +97,15 @@ docker_vals$xmlfile <- paste0(mounted_folders[[dir_xmlfile]], '/', basename(src_
 docker_vals$configtype <- args$configtype
 
 # --- Assemble docker command ---
-cmd <- 'docker run --rm -v <workdir>:/work -v <outdir>:/Out repbioinfo/htgts_pipeline_lts_v16:latest python3 /Algorithm/sample_sheetTolibInfo.py <xmlfile> <outdir>/fof.txt <outdir>/rof.txt <configtype>'
 mount_str <- paste(mounts, collapse = ' ')
-cmd <- sub('docker run', paste('docker run', mount_str), cmd, fixed = TRUE)
-
-replace_placeholder <- function(m) {
-  key <- regmatches(m, regexpr('[^<>]+', m))
-  val <- docker_vals[[key]]
-  if (!is.null(val)) as.character(val) else m
-}
-
+cmd <- paste('docker run --rm -v <workdir>:/work -v <outdir>:/Out', mount_str, 'repbioinfo/htgts_pipeline_lts_v16:latest python3 /Algorithm/sample_sheetTolibInfo.py <xmlfile> <outdir>/fof.txt <outdir>/rof.txt <configtype>')
 placeholders <- regmatches(cmd, gregexpr('<[^>]+>', cmd))[[1]]
 for (ph in placeholders) {
   key <- gsub('<|>', '', ph)
   val <- docker_vals[[key]]
   if (!is.null(val)) cmd <- gsub(ph, val, cmd, fixed = TRUE)
 }
-
 cat('\n', YELLOW, 'Running:\n', RESET, WHITE, cmd, RESET, '\n\n', sep = '')
-
 log_path <- file.path(scratch_path, 'output_log.txt')
 cat(YELLOW, 'Log: ', RESET, WHITE, log_path, RESET, '\n\n', sep = '')
 

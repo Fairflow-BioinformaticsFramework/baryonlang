@@ -17,15 +17,15 @@ def main():
 
     if len(sys.argv) != 9:
         print(f'{WHITE}Usage: python htgts_full.py {usage_str}{RESET}\n')
-        print(f'{YELLOW}analizzare dati di sequenziamento e mappare le traslocazioni genomiche o i siti di rottura del DNA su larga scala{RESET}\n')
+        print(f'{YELLOW}analyze sequencing data and map genomic translocations or DNA break sites on a large scale{RESET}\n')
         print(f'{WHITE}Arguments:{RESET}')
         print(f'\033[38;5;208mfastq1         {RESET} [cp]  the first input FASTQ file name')
         print(f'\033[38;5;208mfastq2         {RESET} [cp]  the second input FASTQ file name')
         print(f'\033[38;5;208mexpinfo        {RESET} [ro]  name of the libseqInfo.txt file')
         print(f'\033[38;5;208mexpinfo2       {RESET} [nc]  name of the libseqInfo2.txt file')
-        print(f'\033[93mworkdir        {RESET} [io]  percorso cartella di lavoro')
-        print(f'\033[93moutdir         {RESET} [out] percorso cartella di output')
-        print(f'\033[92mconfigtype     {RESET}       tipo di cellule')
+        print(f'\033[93mworkdir        {RESET} [io]  working directory path')
+        print(f'\033[93moutdir         {RESET} [out] output directory path')
+        print(f'\033[92mconfigtype     {RESET}       cell type')
         print(f'\033[92massembly       {RESET}       reference genome version')
         sys.exit(1)
 
@@ -122,9 +122,9 @@ def main():
     docker_vals['assembly'] = args['assembly']
 
     # --- Assemble docker command ---
-    cmd = 'docker run --rm repbioinfo/htgts_pipeline_lts_v16:latest /Algorithm/HTGTS_Full.sh -fastq1 <fastq1> -fastq2 <fastq2> -expInfo <expinfo> -expInfo2 <expinfo2> -outDir <outdir> -configType <configtype> -assembly <assembly>'
+    cmd = ' repbioinfo/htgts_pipeline_lts_v16:latest /Algorithm/HTGTS_Full.sh -fastq1 <fastq1> -fastq2 <fastq2> -expInfo <expinfo> -expInfo2 <expinfo2> -outDir <outdir> -configType <configtype> -assembly <assembly>'
     mount_str = ' '.join(mounts)
-    cmd = cmd.replace("docker run", f"docker run {mount_str}", 1)
+    cmd = ' '.join(['docker run --rm', mount_str, ' repbioinfo/htgts_pipeline_lts_v16:latest /Algorithm/HTGTS_Full.sh -fastq1 <fastq1> -fastq2 <fastq2> -expInfo <expinfo> -expInfo2 <expinfo2> -outDir <outdir> -configType <configtype> -assembly <assembly>'])
     def replace_placeholder(match):
         key = match.group(1)
         return str(docker_vals.get(key, match.group(0)))

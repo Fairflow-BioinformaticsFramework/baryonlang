@@ -1,5 +1,5 @@
 [research]
-description=Selects genes with the highest values according to a chosen metric (expression or variance) and returns only the top X from the count matrix.
+description=Filters a gene count matrix, selecting the most relevant genes by variance (using edgeR) or by total count.
 name=topX
 #
 [run]

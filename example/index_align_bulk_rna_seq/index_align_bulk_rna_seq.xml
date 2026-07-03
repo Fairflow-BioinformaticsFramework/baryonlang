@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <tool id="index_align_bulk_rna_seq" name="index_align_bulk_rna_seq" version="1.0.0">
-    <description>Funzione per eseguire l'allineamento e l'indicizzazione</description>
+    <description>Bulk RNA-Seq analysis. Measures average gene expression across a cell population.</description>
     <requirements>
         <container type="docker">repbioinfo/rnaseqstar_v2</container>
     </requirements>
@@ -18,8 +18,8 @@
     true
 ]]></command>
     <inputs>
-        <param name="genome_collection" type="data_collection" format="data" label="percorso cartella di lavoro, Genome"/>
-        <param name="scratch_collection" type="data_collection" format="data" label="percorso cartella Data, qui viene salvato il log e andrebbero piazzati i file di output. Scratch"/>
+        <param name="genome_collection" type="data_collection" format="data" label="genome directory path"/>
+        <param name="scratch_collection" type="data_collection" format="data" label="scratch directory path(Data)"/>
     </inputs>
     <outputs>
         <data name="output_log" format="txt" label="${tool.name} Global Log"/>

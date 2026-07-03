@@ -13,15 +13,15 @@ USAGE_STR=$(echo -e "${ORANGE}<fastq1>${RESET}" "${ORANGE}<fastq2>${RESET}" "${O
 
 if [ "$#" -ne 8 ]; then
     echo -e "${WHITE}Usage: bash htgts_full.sh ${USAGE_STR}${RESET}\n"
-    echo -e "${YELLOW}analizzare dati di sequenziamento e mappare le traslocazioni genomiche o i siti di rottura del DNA su larga scala${RESET}\n"
+    echo -e "${YELLOW}analyze sequencing data and map genomic translocations or DNA break sites on a large scale${RESET}\n"
     echo -e "${WHITE}Arguments:${RESET}"
     echo -e "${ORANGE}fastq1         ${RESET} [cp]  the first input FASTQ file name"
     echo -e "${ORANGE}fastq2         ${RESET} [cp]  the second input FASTQ file name"
     echo -e "${ORANGE}expinfo        ${RESET} [ro]  name of the libseqInfo.txt file"
     echo -e "${ORANGE}expinfo2       ${RESET} [nc]  name of the libseqInfo2.txt file"
-    echo -e "${YELLOW}workdir        ${RESET} [io]  percorso cartella di lavoro"
-    echo -e "${YELLOW}outdir         ${RESET} [out] percorso cartella di output"
-    echo -e "${GREEN}configtype     ${RESET}       tipo di cellule"
+    echo -e "${YELLOW}workdir        ${RESET} [io]  working directory path"
+    echo -e "${YELLOW}outdir         ${RESET} [out] output directory path"
+    echo -e "${GREEN}configtype     ${RESET}       cell type"
     echo -e "${GREEN}assembly       ${RESET}       reference genome version"
     exit 1
 fi
@@ -131,18 +131,12 @@ docker_vals["expinfo2"]="${mounted_folders[${_dir_expinfo2}]}/$(basename "${_src
 docker_vals["configtype"]="${configtype}"
 docker_vals["assembly"]="${assembly}"
 
-# --- Assemble docker command ---
-cmd="docker run --rm repbioinfo/htgts_pipeline_lts_v16:latest /Algorithm/HTGTS_Full.sh -fastq1 <fastq1> -fastq2 <fastq2> -expInfo <expinfo> -expInfo2 <expinfo2> -outDir <outdir> -configType <configtype> -assembly <assembly>"
 mount_str="${mounts[*]}"
-cmd="${cmd/docker run/docker run ${mount_str}}"
-
-# Replace <placeholder> tokens with docker_vals
+cmd="docker run --rm ${mount_str} repbioinfo/htgts_pipeline_lts_v16:latest /Algorithm/HTGTS_Full.sh -fastq1 <fastq1> -fastq2 <fastq2> -expInfo <expinfo> -expInfo2 <expinfo2> -outDir <outdir> -configType <configtype> -assembly <assembly>"
 for key in "${!docker_vals[@]}"; do
     cmd="${cmd//<${key}>/${docker_vals[${key}]}}"
 done
-
 echo -e "\n${YELLOW}Running:${RESET}\n${WHITE}${cmd}${RESET}\n"
-
 log_path="${scratch_path}/output_log.txt"
 echo -e "${YELLOW}Log:${RESET} ${WHITE}${log_path}${RESET}\n"
 

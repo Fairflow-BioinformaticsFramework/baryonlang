@@ -17,11 +17,11 @@ def main():
 
     if len(sys.argv) != 5:
         print(f'{WHITE}Usage: python index_align_scrs.py {usage_str}{RESET}\n')
-        print(f'{YELLOW}Funzione per eseguire l\'allineamento e l\'indicizzazione{RESET}\n')
+        print(f'{YELLOW}Single-Cell RNA-Seq (scRNA-Seq) analysis. Tracks gene expression at single-cell level using cell barcodes.{RESET}\n')
         print(f'{WHITE}Arguments:{RESET}')
         print(f'\033[93mworkdir        {RESET} [io]  percorso cartella di lavoro')
-        print(f'\033[93mgenome         {RESET} [io]  percorso cartella di lavoro, Genome')
-        print(f'\033[93mscratch        {RESET} [io]  percorso cartella Data, qui viene salvato il log e andrebbero piazzati i file di output. Scratch')
+        print(f'\033[93mgenome         {RESET} [io]  working directory path, Genome')
+        print(f'\033[93mscratch        {RESET} [io]  Data directory path')
         print(f'\033[92mbamsave        {RESET}       Whether to save the BAM file')
         sys.exit(1)
 
@@ -81,9 +81,9 @@ def main():
     docker_vals['bamsave'] = args['bamsave']
 
     # --- Assemble docker command ---
-    cmd = 'docker run --rm repbioinfo/carncellranger2 bash /home/index_align.sh <bamsave>'
+    cmd = ' repbioinfo/carncellranger2 bash /home/index_align.sh <bamsave>'
     mount_str = ' '.join(mounts)
-    cmd = cmd.replace("docker run", f"docker run {mount_str}", 1)
+    cmd = ' '.join(['docker run --rm', mount_str, ' repbioinfo/carncellranger2 bash /home/index_align.sh <bamsave>'])
     def replace_placeholder(match):
         key = match.group(1)
         return str(docker_vals.get(key, match.group(0)))

@@ -21,7 +21,7 @@ expinfo2:
   class: File
   path: path/to/file/expinfo2 # <=====================
  
-# tipo di cellule
+# cell type
 # Possible values: HTGTS_human,HTGTS_mouse,CELTICSseq,polyA
 configtype: "HTGTS_human" # <=====================
  

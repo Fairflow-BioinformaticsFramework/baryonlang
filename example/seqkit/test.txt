@@ -1,2 +1,2 @@
->sequenza_test
+>sequence_test
 ATGCATGCATGCATGC

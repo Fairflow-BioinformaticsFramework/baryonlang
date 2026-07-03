@@ -10,18 +10,18 @@ cat_col <- function(..., color = WHITE) {
   cat(color, ..., RESET, '\n', sep = '')
 }
 
-usage_str <- paste0(paste0("\033[93m<workdir", RESET), ' ', paste0("\033[93m<genome", RESET), ' ', paste0("\033[93m<scratch", RESET), ' ', paste0("\033[92m<bamsave", RESET))
+usage_str <- paste0(paste0("\033[93m<workdir>", RESET), ' ', paste0("\033[93m<genome>", RESET), ' ', paste0("\033[93m<scratch>", RESET), ' ', paste0("\033[92m<bamsave>", RESET))
 
 args_raw <- commandArgs(trailingOnly = TRUE)
 
 if (length(args_raw) != 4) {
   cat(WHITE, 'Usage: Rscript index_align_scrs.R ', usage_str, RESET, '\n\n', sep = '')
-  cat_col("Funzione per eseguire l'allineamento e l'indicizzazione", color = YELLOW)
+  cat_col("Single-Cell RNA-Seq (scRNA-Seq) analysis. Tracks gene expression at single-cell level using cell barcodes.", color = YELLOW)
   cat('\n')
   cat_col('Arguments:', color = WHITE)
   cat('\033[93mworkdir         [io]  percorso cartella di lavoro', RESET, '\n', sep = '')
-  cat('\033[93mgenome          [io]  percorso cartella di lavoro, Genome', RESET, '\n', sep = '')
-  cat('\033[93mscratch         [io]  percorso cartella Data, qui viene salvato il log e andrebbero piazzati i file di output. Scratch', RESET, '\n', sep = '')
+  cat('\033[93mgenome          [io]  working directory path, Genome', RESET, '\n', sep = '')
+  cat('\033[93mscratch         [io]  Data directory path', RESET, '\n', sep = '')
   cat('\033[92mbamsave               Whether to save the BAM file', RESET, '\n', sep = '')
   quit(status = 1)
 }
@@ -89,25 +89,15 @@ mounted_folders <- list()
 docker_vals$bamsave <- args$bamsave
 
 # --- Assemble docker command ---
-cmd <- 'docker run --rm repbioinfo/carncellranger2 bash /home/index_align.sh <bamsave>'
 mount_str <- paste(mounts, collapse = ' ')
-cmd <- sub('docker run', paste('docker run', mount_str), cmd, fixed = TRUE)
-
-replace_placeholder <- function(m) {
-  key <- regmatches(m, regexpr('[^<>]+', m))
-  val <- docker_vals[[key]]
-  if (!is.null(val)) as.character(val) else m
-}
-
+cmd <- paste('docker run --rm', mount_str, 'repbioinfo/carncellranger2 bash /home/index_align.sh <bamsave>')
 placeholders <- regmatches(cmd, gregexpr('<[^>]+>', cmd))[[1]]
 for (ph in placeholders) {
   key <- gsub('<|>', '', ph)
   val <- docker_vals[[key]]
   if (!is.null(val)) cmd <- gsub(ph, val, cmd, fixed = TRUE)
 }
-
 cat('\n', YELLOW, 'Running:\n', RESET, WHITE, cmd, RESET, '\n\n', sep = '')
-
 log_path <- file.path(scratch_path, 'output_log.txt')
 cat(YELLOW, 'Log: ', RESET, WHITE, log_path, RESET, '\n\n', sep = '')
 

@@ -13,11 +13,11 @@ USAGE_STR=$(echo -e "${YELLOW}<workdir>${RESET}" "${YELLOW}<genome>${RESET}" "${
 
 if [ "$#" -ne 3 ]; then
     echo -e "${WHITE}Usage: bash index_align_bulk_rna_seq.sh ${USAGE_STR}${RESET}\n"
-    echo -e "${YELLOW}Funzione per eseguire l\'allineamento e l\'indicizzazione${RESET}\n"
+    echo -e "${YELLOW}Bulk RNA-Seq analysis. Measures average gene expression across a cell population.${RESET}\n"
     echo -e "${WHITE}Arguments:${RESET}"
-    echo -e "${YELLOW}workdir        ${RESET} [io]  percorso cartella di lavoro"
-    echo -e "${YELLOW}genome         ${RESET} [io]  percorso cartella di lavoro, Genome"
-    echo -e "${YELLOW}scratch        ${RESET} [io]  percorso cartella Data, qui viene salvato il log e andrebbero piazzati i file di output. Scratch"
+    echo -e "${YELLOW}workdir        ${RESET} [io]  working directory path"
+    echo -e "${YELLOW}genome         ${RESET} [io]  genome directory path"
+    echo -e "${YELLOW}scratch        ${RESET} [io]  scratch directory path(Data)"
     exit 1
 fi
 
@@ -78,18 +78,12 @@ docker_vals["scratch"]="/scratch"
 # --- Bind files and service volumes ---
 declare -A mounted_folders
 
-# --- Assemble docker command ---
-cmd="docker run --rm repbioinfo/rnaseqstar_v2 /home/index_align.sh "
 mount_str="${mounts[*]}"
-cmd="${cmd/docker run/docker run ${mount_str}}"
-
-# Replace <placeholder> tokens with docker_vals
+cmd="docker run --rm ${mount_str} repbioinfo/rnaseqstar_v2 /home/index_align.sh "
 for key in "${!docker_vals[@]}"; do
     cmd="${cmd//<${key}>/${docker_vals[${key}]}}"
 done
-
 echo -e "\n${YELLOW}Running:${RESET}\n${WHITE}${cmd}${RESET}\n"
-
 log_path="${scratch_path}/output_log.txt"
 echo -e "${YELLOW}Log:${RESET} ${WHITE}${log_path}${RESET}\n"
 

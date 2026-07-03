@@ -13,16 +13,16 @@ USAGE_STR=$(echo -e "${YELLOW}<workdir>${RESET}" "${YELLOW}<data>${RESET}" "${GR
 
 if [ "$#" -ne 8 ]; then
     echo -e "${WHITE}Usage: bash topx.sh ${USAGE_STR}${RESET}\n"
-    echo -e "${YELLOW}Seleziona i geni con i valori piÃ¹ alti secondo una metrica scelta (espressione o varianza) e restituisce solo i top X dalla matrice di conteggi.${RESET}\n"
+    echo -e "${YELLOW}Filters a gene count matrix, selecting the most relevant genes by variance (using edgeR) or by total count.${RESET}\n"
     echo -e "${WHITE}Arguments:${RESET}"
-    echo -e "${YELLOW}workdir        ${RESET} [io]  percorso cartella di lavoro"
-    echo -e "${YELLOW}data           ${RESET} [io]  percorso cartella contenente i dati e ricevente i risultati"
-    echo -e "${GREEN}matrixname     ${RESET}       name del file di input senza estensione"
-    echo -e "${GREEN}format         ${RESET}       formato del file di input"
-    echo -e "${GREEN}threshold      ${RESET}       Soglia per selezionare i geni top (solitamente fra 10 e 2000 a seconda delle dimensioni del datase)"
-    echo -e "${GREEN}separator      ${RESET}       Separatore del file (Separatore usato nel file Usare \\\\",\\\\" per CSV, \\\\"\t\\\\" per TSV)"
-    echo -e "${GREEN}logged         ${RESET}       Indica se i valori della matrice di conteggi sono giÃ  logâ€‘trasformati (TRUE) oppure no (FALSE)."
-    echo -e "${GREEN}type           ${RESET}       Tipo di analisi da eseguire."
+    echo -e "${YELLOW}workdir        ${RESET} [io]  Path to the working directory"
+    echo -e "${YELLOW}data           ${RESET} [io]  Path to the folder containing input data and receiving output results"
+    echo -e "${GREEN}matrixname     ${RESET}       Input file name without extension"
+    echo -e "${GREEN}format         ${RESET}       Input file format"
+    echo -e "${GREEN}threshold      ${RESET}       Threshold for selecting top genes (typically between 10 and 2000 depending on dataset size)"
+    echo -e "${GREEN}separator      ${RESET}       File separator (use \\\\",\\\\" for CSV, \\\\"\t\\\\" for TSV)"
+    echo -e "${GREEN}logged         ${RESET}       Indicates whether the count matrix values are already log-transformed (TRUE) or not (FALSE)."
+    echo -e "${GREEN}type           ${RESET}       Type of analysis to perform."
     exit 1
 fi
 
@@ -99,18 +99,12 @@ docker_vals["separator"]="${separator}"
 docker_vals["logged"]="${logged}"
 docker_vals["type"]="${type}"
 
-# --- Assemble docker command ---
-cmd="docker run --rm repbioinfo/topxv2:1 Rscript /bin/top.R <matrixname> <format> <separator> <logged> <threshold> <type>"
 mount_str="${mounts[*]}"
-cmd="${cmd/docker run/docker run ${mount_str}}"
-
-# Replace <placeholder> tokens with docker_vals
+cmd="docker run --rm ${mount_str} repbioinfo/topxv2:1 Rscript /bin/top.R <matrixname> <format> <separator> <logged> <threshold> <type>"
 for key in "${!docker_vals[@]}"; do
     cmd="${cmd//<${key}>/${docker_vals[${key}]}}"
 done
-
 echo -e "\n${YELLOW}Running:${RESET}\n${WHITE}${cmd}${RESET}\n"
-
 log_path="${scratch_path}/output_log.txt"
 echo -e "${YELLOW}Log:${RESET} ${WHITE}${log_path}${RESET}\n"
 

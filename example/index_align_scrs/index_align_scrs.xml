@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <tool id="index_align_scrs" name="index_align_scrs" version="1.0.0">
-    <description>Funzione per eseguire l'allineamento e l'indicizzazione</description>
+    <description>Single-Cell RNA-Seq (scRNA-Seq) analysis. Tracks gene expression at single-cell level using cell barcodes.</description>
     <requirements>
         <container type="docker">repbioinfo/carncellranger2</container>
     </requirements>
@@ -22,8 +22,8 @@
             <option value="true">true</option>
             <option value="false">false</option>
         </param>
-        <param name="genome_collection" type="data_collection" format="data" label="percorso cartella di lavoro, Genome"/>
-        <param name="scratch_collection" type="data_collection" format="data" label="percorso cartella Data, qui viene salvato il log e andrebbero piazzati i file di output. Scratch"/>
+        <param name="genome_collection" type="data_collection" format="data" label="working directory path, Genome"/>
+        <param name="scratch_collection" type="data_collection" format="data" label="Data directory path"/>
     </inputs>
     <outputs>
         <data name="output_log" format="txt" label="${tool.name} Global Log"/>

@@ -10,22 +10,22 @@ cat_col <- function(..., color = WHITE) {
   cat(color, ..., RESET, '\n', sep = '')
 }
 
-usage_str <- paste0(paste0("\033[38;5;208m<fastq1", RESET), ' ', paste0("\033[38;5;208m<fastq2", RESET), ' ', paste0("\033[38;5;208m<expinfo", RESET), ' ', paste0("\033[38;5;208m<expinfo2", RESET), ' ', paste0("\033[93m<workdir", RESET), ' ', paste0("\033[93m<outdir", RESET), ' ', paste0("\033[92m<configtype", RESET), ' ', paste0("\033[92m<assembly", RESET))
+usage_str <- paste0(paste0("\033[38;5;208m<fastq1>", RESET), ' ', paste0("\033[38;5;208m<fastq2>", RESET), ' ', paste0("\033[38;5;208m<expinfo>", RESET), ' ', paste0("\033[38;5;208m<expinfo2>", RESET), ' ', paste0("\033[93m<workdir>", RESET), ' ', paste0("\033[93m<outdir>", RESET), ' ', paste0("\033[92m<configtype>", RESET), ' ', paste0("\033[92m<assembly>", RESET))
 
 args_raw <- commandArgs(trailingOnly = TRUE)
 
 if (length(args_raw) != 8) {
   cat(WHITE, 'Usage: Rscript htgts_full.R ', usage_str, RESET, '\n\n', sep = '')
-  cat_col("analizzare dati di sequenziamento e mappare le traslocazioni genomiche o i siti di rottura del DNA su larga scala", color = YELLOW)
+  cat_col("analyze sequencing data and map genomic translocations or DNA break sites on a large scale", color = YELLOW)
   cat('\n')
   cat_col('Arguments:', color = WHITE)
   cat('\033[38;5;208mfastq1          [cp]  the first input FASTQ file name', RESET, '\n', sep = '')
   cat('\033[38;5;208mfastq2          [cp]  the second input FASTQ file name', RESET, '\n', sep = '')
   cat('\033[38;5;208mexpinfo         [ro]  name of the libseqInfo.txt file', RESET, '\n', sep = '')
   cat('\033[38;5;208mexpinfo2        [nc]  name of the libseqInfo2.txt file', RESET, '\n', sep = '')
-  cat('\033[93mworkdir         [io]  percorso cartella di lavoro', RESET, '\n', sep = '')
-  cat('\033[93moutdir          [out] percorso cartella di output', RESET, '\n', sep = '')
-  cat('\033[92mconfigtype            tipo di cellule', RESET, '\n', sep = '')
+  cat('\033[93mworkdir         [io]  working directory path', RESET, '\n', sep = '')
+  cat('\033[93moutdir          [out] output directory path', RESET, '\n', sep = '')
+  cat('\033[92mconfigtype            cell type', RESET, '\n', sep = '')
   cat('\033[92massembly              reference genome version', RESET, '\n', sep = '')
   quit(status = 1)
 }
@@ -136,25 +136,15 @@ docker_vals$configtype <- args$configtype
 docker_vals$assembly <- args$assembly
 
 # --- Assemble docker command ---
-cmd <- 'docker run --rm repbioinfo/htgts_pipeline_lts_v16:latest /Algorithm/HTGTS_Full.sh -fastq1 <fastq1> -fastq2 <fastq2> -expInfo <expinfo> -expInfo2 <expinfo2> -outDir <outdir> -configType <configtype> -assembly <assembly>'
 mount_str <- paste(mounts, collapse = ' ')
-cmd <- sub('docker run', paste('docker run', mount_str), cmd, fixed = TRUE)
-
-replace_placeholder <- function(m) {
-  key <- regmatches(m, regexpr('[^<>]+', m))
-  val <- docker_vals[[key]]
-  if (!is.null(val)) as.character(val) else m
-}
-
+cmd <- paste('docker run --rm', mount_str, 'repbioinfo/htgts_pipeline_lts_v16:latest /Algorithm/HTGTS_Full.sh -fastq1 <fastq1> -fastq2 <fastq2> -expInfo <expinfo> -expInfo2 <expinfo2> -outDir <outdir> -configType <configtype> -assembly <assembly>')
 placeholders <- regmatches(cmd, gregexpr('<[^>]+>', cmd))[[1]]
 for (ph in placeholders) {
   key <- gsub('<|>', '', ph)
   val <- docker_vals[[key]]
   if (!is.null(val)) cmd <- gsub(ph, val, cmd, fixed = TRUE)
 }
-
 cat('\n', YELLOW, 'Running:\n', RESET, WHITE, cmd, RESET, '\n\n', sep = '')
-
 log_path <- file.path(scratch_path, 'output_log.txt')
 cat(YELLOW, 'Log: ', RESET, WHITE, log_path, RESET, '\n\n', sep = '')
 

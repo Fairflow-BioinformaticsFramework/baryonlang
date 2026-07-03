@@ -1,5 +1,5 @@
 [research]
-description=Funzione per eseguire l'allineamento e l'indicizzazione
+description=Bulk RNA-Seq analysis. Measures average gene expression across a cell population.
 name=index_align_bulk_rna_seq
 
 [run]
@@ -9,18 +9,18 @@ image= repbioinfo/rnaseqstar_v2
 
 [directory]
 name=workDir
-description=percorso cartella di lavoro
+description=working directory path
 flag=io
 mount=/workDir
 #
 [directory]
 name=genome
-description=percorso cartella di lavoro, Genome
+description=genome directory path
 flag=io
 mount=/genome
 
 [directory]
 name=scratch
-description=percorso cartella Data, qui viene salvato il log e andrebbero piazzati i file di output. Scratch
+description=scratch directory path(Data)
 flag=io
 mount=/scratch

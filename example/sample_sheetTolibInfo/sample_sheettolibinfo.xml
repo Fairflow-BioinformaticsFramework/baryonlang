@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <tool id="sample_sheettolibinfo" name="sample_sheettolibinfo" version="1.0.0">
-    <description>produce in output il file fof.txt e rof.txt nella cartella outdir</description>
+    <description>Converts experiment metadata from an Excel spreadsheet into a KEY=VALUE format readable by downstream HTGTS Bash pipeline scripts.</description>
     <requirements>
         <container type="docker">repbioinfo/htgts_pipeline_lts_v16:latest</container>
     </requirements>
@@ -12,8 +12,8 @@
     true
 ]]></command>
     <inputs>
-        <param name="xmlfile" type="data" format="data" label="name del file xml"/>
-        <param name="configtype" type="select" label="tipo di cellule">
+        <param name="xmlfile" type="data" format="data" label="name of the xml file"/>
+        <param name="configtype" type="select" label="cell type">
             <option value="HTGTS_mouse">HTGTS_mouse</option>
             <option value="HTGTS_human">HTGTS_human</option>
             <option value="CELTICSseq">CELTICSseq</option>

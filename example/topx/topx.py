@@ -17,16 +17,16 @@ def main():
 
     if len(sys.argv) != 9:
         print(f'{WHITE}Usage: python topx.py {usage_str}{RESET}\n')
-        print(f'{YELLOW}Seleziona i geni con i valori piÃ¹ alti secondo una metrica scelta (espressione o varianza) e restituisce solo i top X dalla matrice di conteggi.{RESET}\n')
+        print(f'{YELLOW}Filters a gene count matrix, selecting the most relevant genes by variance (using edgeR) or by total count.{RESET}\n')
         print(f'{WHITE}Arguments:{RESET}')
-        print(f'\033[93mworkdir        {RESET} [io]  percorso cartella di lavoro')
-        print(f'\033[93mdata           {RESET} [io]  percorso cartella contenente i dati e ricevente i risultati')
-        print(f'\033[92mmatrixname     {RESET}       name del file di input senza estensione')
-        print(f'\033[92mformat         {RESET}       formato del file di input')
-        print(f'\033[92mthreshold      {RESET}       Soglia per selezionare i geni top (solitamente fra 10 e 2000 a seconda delle dimensioni del datase)')
-        print(f'\033[92mseparator      {RESET}       Separatore del file (Separatore usato nel file Usare \",\" per CSV, \"\t\" per TSV)')
-        print(f'\033[92mlogged         {RESET}       Indica se i valori della matrice di conteggi sono giÃ  logâ€‘trasformati (TRUE) oppure no (FALSE).')
-        print(f'\033[92mtype           {RESET}       Tipo di analisi da eseguire.')
+        print(f'\033[93mworkdir        {RESET} [io]  Path to the working directory')
+        print(f'\033[93mdata           {RESET} [io]  Path to the folder containing input data and receiving output results')
+        print(f'\033[92mmatrixname     {RESET}       Input file name without extension')
+        print(f'\033[92mformat         {RESET}       Input file format')
+        print(f'\033[92mthreshold      {RESET}       Threshold for selecting top genes (typically between 10 and 2000 depending on dataset size)')
+        print(f'\033[92mseparator      {RESET}       File separator (use \",\" for CSV, \"\t\" for TSV)')
+        print(f'\033[92mlogged         {RESET}       Indicates whether the count matrix values are already log-transformed (TRUE) or not (FALSE).')
+        print(f'\033[92mtype           {RESET}       Type of analysis to perform.')
         sys.exit(1)
 
     # Parse positional arguments
@@ -94,9 +94,9 @@ def main():
     docker_vals['type'] = args['type']
 
     # --- Assemble docker command ---
-    cmd = 'docker run --rm repbioinfo/topxv2:1 Rscript /bin/top.R <matrixname> <format> <separator> <logged> <threshold> <type>'
+    cmd = ' repbioinfo/topxv2:1 Rscript /bin/top.R <matrixname> <format> <separator> <logged> <threshold> <type>'
     mount_str = ' '.join(mounts)
-    cmd = cmd.replace("docker run", f"docker run {mount_str}", 1)
+    cmd = ' '.join(['docker run --rm', mount_str, ' repbioinfo/topxv2:1 Rscript /bin/top.R <matrixname> <format> <separator> <logged> <threshold> <type>'])
     def replace_placeholder(match):
         key = match.group(1)
         return str(docker_vals.get(key, match.group(0)))

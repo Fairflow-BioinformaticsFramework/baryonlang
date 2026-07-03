@@ -13,12 +13,12 @@ USAGE_STR=$(echo -e "${YELLOW}<workdir>${RESET}" "${YELLOW}<outdir>${RESET}" "${
 
 if [ "$#" -ne 4 ]; then
     echo -e "${WHITE}Usage: bash sample_sheettolibinfo.sh ${USAGE_STR}${RESET}\n"
-    echo -e "${YELLOW}produce in output il file fof.txt e rof.txt nella cartella outdir${RESET}\n"
+    echo -e "${YELLOW}Converts experiment metadata from an Excel spreadsheet into a KEY=VALUE format readable by downstream HTGTS Bash pipeline scripts.${RESET}\n"
     echo -e "${WHITE}Arguments:${RESET}"
-    echo -e "${YELLOW}workdir        ${RESET} [io]  percorso cartella di lavoro"
-    echo -e "${YELLOW}outdir         ${RESET} [out] percorso cartella di output"
-    echo -e "${ORANGE}xmlfile        ${RESET} [nc]  name del file xml"
-    echo -e "${GREEN}configtype     ${RESET}       tipo di cellule"
+    echo -e "${YELLOW}workdir        ${RESET} [io]  working directory path"
+    echo -e "${YELLOW}outdir         ${RESET} [out] output directory path"
+    echo -e "${ORANGE}xmlfile        ${RESET} [nc]  name of the xml file"
+    echo -e "${GREEN}configtype     ${RESET}       cell type"
     exit 1
 fi
 
@@ -92,18 +92,12 @@ docker_vals["xmlfile"]="${mounted_folders[${_dir_xmlfile}]}/$(basename "${_src_x
 
 docker_vals["configtype"]="${configtype}"
 
-# --- Assemble docker command ---
-cmd="docker run --rm -v <workdir>:/work -v <outdir>:/Out repbioinfo/htgts_pipeline_lts_v16:latest python3 /Algorithm/sample_sheetTolibInfo.py <xmlfile> <outdir>/fof.txt <outdir>/rof.txt <configtype>"
 mount_str="${mounts[*]}"
-cmd="${cmd/docker run/docker run ${mount_str}}"
-
-# Replace <placeholder> tokens with docker_vals
+cmd="docker run --rm -v <workdir>:/work -v <outdir>:/Out ${mount_str} repbioinfo/htgts_pipeline_lts_v16:latest python3 /Algorithm/sample_sheetTolibInfo.py <xmlfile> <outdir>/fof.txt <outdir>/rof.txt <configtype>"
 for key in "${!docker_vals[@]}"; do
     cmd="${cmd//<${key}>/${docker_vals[${key}]}}"
 done
-
 echo -e "\n${YELLOW}Running:${RESET}\n${WHITE}${cmd}${RESET}\n"
-
 log_path="${scratch_path}/output_log.txt"
 echo -e "${YELLOW}Log:${RESET} ${WHITE}${log_path}${RESET}\n"
 

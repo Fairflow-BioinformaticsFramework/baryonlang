@@ -15,9 +15,9 @@ deployments:
     config:
       image: repbioinfo/rnaseqstar_v2
       volume:
-        # percorso cartella di lavoro   =====================>
-        - /c/percorso/cartella/di/lavoro:/workDir 
-        # percorso cartella di lavoro, Genome   =====================>
-        - /c/percorso/cartella/di/lavoro,/Genome:/genome 
-        # percorso cartella Data, qui viene salvato il log e andrebbero piazzati i file di output. Scratch   =====================>
-        - /c/percorso/cartella/Data,/qui/viene/salvato/il/log/e/andrebbero/piazzati/i/file/di/output./Scratch:/scratch 
+        # working directory path   =====================>
+        - /c/working/directory/path:/workDir 
+        # genome directory path   =====================>
+        - /c/genome/directory/path:/genome 
+        # scratch directory path(Data)   =====================>
+        - /c/scratch/directory/path(Data):/scratch 

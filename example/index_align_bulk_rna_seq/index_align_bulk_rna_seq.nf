@@ -2,12 +2,12 @@ nextflow.enable.dsl=2
 
 /*
  * Pipeline: index_align_bulk_rna_seq
- * Description: Funzione per eseguire l'allineamento e l'indicizzazione
+ * Description: Bulk RNA-Seq analysis. Measures average gene expression across a cell population.
  */
 
 // --- PARAMETERS ---
-params.genome = "/path/to/directory/genome" // percorso cartella di lavoro, Genome
-params.scratch = "/path/to/directory/scratch" // percorso cartella Data, qui viene salvato il log e andrebbero piazzati i file di output. Scratch
+params.genome = "/path/to/directory/genome" // genome directory path
+params.scratch = "/path/to/directory/scratch" // scratch directory path(Data)
 
 process INDEX_ALIGN_BULK_RNA_SEQ {
     container 'repbioinfo/rnaseqstar_v2'

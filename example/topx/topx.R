@@ -10,23 +10,23 @@ cat_col <- function(..., color = WHITE) {
   cat(color, ..., RESET, '\n', sep = '')
 }
 
-usage_str <- paste0(paste0("\033[93m<workdir", RESET), ' ', paste0("\033[93m<data", RESET), ' ', paste0("\033[92m<matrixname", RESET), ' ', paste0("\033[92m<format", RESET), ' ', paste0("\033[92m<threshold", RESET), ' ', paste0("\033[92m<separator", RESET), ' ', paste0("\033[92m<logged", RESET), ' ', paste0("\033[92m<type", RESET))
+usage_str <- paste0(paste0("\033[93m<workdir>", RESET), ' ', paste0("\033[93m<data>", RESET), ' ', paste0("\033[92m<matrixname>", RESET), ' ', paste0("\033[92m<format>", RESET), ' ', paste0("\033[92m<threshold>", RESET), ' ', paste0("\033[92m<separator>", RESET), ' ', paste0("\033[92m<logged>", RESET), ' ', paste0("\033[92m<type>", RESET))
 
 args_raw <- commandArgs(trailingOnly = TRUE)
 
 if (length(args_raw) != 8) {
   cat(WHITE, 'Usage: Rscript topx.R ', usage_str, RESET, '\n\n', sep = '')
-  cat_col("Seleziona i geni con i valori piÃ¹ alti secondo una metrica scelta (espressione o varianza) e restituisce solo i top X dalla matrice di conteggi.", color = YELLOW)
+  cat_col("Filters a gene count matrix, selecting the most relevant genes by variance (using edgeR) or by total count.", color = YELLOW)
   cat('\n')
   cat_col('Arguments:', color = WHITE)
-  cat('\033[93mworkdir         [io]  percorso cartella di lavoro', RESET, '\n', sep = '')
-  cat('\033[93mdata            [io]  percorso cartella contenente i dati e ricevente i risultati', RESET, '\n', sep = '')
-  cat('\033[92mmatrixname            name del file di input senza estensione', RESET, '\n', sep = '')
-  cat('\033[92mformat                formato del file di input', RESET, '\n', sep = '')
-  cat('\033[92mthreshold             Soglia per selezionare i geni top (solitamente fra 10 e 2000 a seconda delle dimensioni del datase)', RESET, '\n', sep = '')
-  cat('\033[92mseparator             Separatore del file (Separatore usato nel file Usare \\\",\\\" per CSV, \\\"\t\\\" per TSV)', RESET, '\n', sep = '')
-  cat('\033[92mlogged                Indica se i valori della matrice di conteggi sono giÃ  logâ€‘trasformati (TRUE) oppure no (FALSE).', RESET, '\n', sep = '')
-  cat('\033[92mtype                  Tipo di analisi da eseguire.', RESET, '\n', sep = '')
+  cat('\033[93mworkdir         [io]  Path to the working directory', RESET, '\n', sep = '')
+  cat('\033[93mdata            [io]  Path to the folder containing input data and receiving output results', RESET, '\n', sep = '')
+  cat('\033[92mmatrixname            Input file name without extension', RESET, '\n', sep = '')
+  cat('\033[92mformat                Input file format', RESET, '\n', sep = '')
+  cat('\033[92mthreshold             Threshold for selecting top genes (typically between 10 and 2000 depending on dataset size)', RESET, '\n', sep = '')
+  cat('\033[92mseparator             File separator (use \\\",\\\" for CSV, \\\"\t\\\" for TSV)', RESET, '\n', sep = '')
+  cat('\033[92mlogged                Indicates whether the count matrix values are already log-transformed (TRUE) or not (FALSE).', RESET, '\n', sep = '')
+  cat('\033[92mtype                  Type of analysis to perform.', RESET, '\n', sep = '')
   quit(status = 1)
 }
 
@@ -104,25 +104,15 @@ docker_vals$logged <- args$logged
 docker_vals$type <- args$type
 
 # --- Assemble docker command ---
-cmd <- 'docker run --rm repbioinfo/topxv2:1 Rscript /bin/top.R <matrixname> <format> <separator> <logged> <threshold> <type>'
 mount_str <- paste(mounts, collapse = ' ')
-cmd <- sub('docker run', paste('docker run', mount_str), cmd, fixed = TRUE)
-
-replace_placeholder <- function(m) {
-  key <- regmatches(m, regexpr('[^<>]+', m))
-  val <- docker_vals[[key]]
-  if (!is.null(val)) as.character(val) else m
-}
-
+cmd <- paste('docker run --rm', mount_str, 'repbioinfo/topxv2:1 Rscript /bin/top.R <matrixname> <format> <separator> <logged> <threshold> <type>')
 placeholders <- regmatches(cmd, gregexpr('<[^>]+>', cmd))[[1]]
 for (ph in placeholders) {
   key <- gsub('<|>', '', ph)
   val <- docker_vals[[key]]
   if (!is.null(val)) cmd <- gsub(ph, val, cmd, fixed = TRUE)
 }
-
 cat('\n', YELLOW, 'Running:\n', RESET, WHITE, cmd, RESET, '\n\n', sep = '')
-
 log_path <- file.path(scratch_path, 'output_log.txt')
 cat(YELLOW, 'Log: ', RESET, WHITE, log_path, RESET, '\n\n', sep = '')
 

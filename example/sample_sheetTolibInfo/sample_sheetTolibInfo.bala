@@ -1,32 +1,32 @@
 [research]
-description=produce in output il file fof.txt e rof.txt nella cartella outdir
+description=Converts experiment metadata from an Excel spreadsheet into a KEY=VALUE format readable by downstream HTGTS Bash pipeline scripts.
 name=sample_sheetTolibInfo
 #
 [run]
 command=docker run --rm -v <workDir>:/work -v <outDir>:/Out
 script= python3 /Algorithm/sample_sheetTolibInfo.py
 image= repbioinfo/htgts_pipeline_lts_v16:latest  
-usage= <xmlfile> <outDir>/fof.txt <outdir>/rof.txt <configType>
+usage= <xmlfile> <outdir>/fof.txt <outdir>/rof.txt <configType>
 #
 [directory]
 name=workDir
-description=percorso cartella di lavoro
+description=working directory path
 flag=io
 mount=/workDir
 #
 [directory]
 name=outDir
-description=percorso cartella di output 
+description=output directory path
 mount=/outDir
 flag=out
 #
 [file]
 name=xmlfile
 flag=nc
-description=name del file xml
+description=name of the xml file
 #
 [parameter]
 name=configType
 values=HTGTS_mouse,HTGTS_human,CELTICSseq,polyA
-description= tipo di cellule
+description= cell type
 #

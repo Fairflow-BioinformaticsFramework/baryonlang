@@ -15,7 +15,7 @@ deployments:
     config:
       image: repbioinfo/htgts_pipeline_lts_v16:latest
       volume:
-        # percorso cartella di lavoro   =====================>
-        - /c/percorso/cartella/di/lavoro:/workDir 
-        # percorso cartella di output   =====================>
-        - /c/percorso/cartella/di/output:/outDir 
+        # working directory path   =====================>
+        - /c/working/directory/path:/workDir 
+        # output directory path   =====================>
+        - /c/output/directory/path:/outDir 

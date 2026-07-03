@@ -13,11 +13,11 @@ USAGE_STR=$(echo -e "${YELLOW}<workdir>${RESET}" "${YELLOW}<genome>${RESET}" "${
 
 if [ "$#" -ne 4 ]; then
     echo -e "${WHITE}Usage: bash index_align_scrs.sh ${USAGE_STR}${RESET}\n"
-    echo -e "${YELLOW}Funzione per eseguire l\'allineamento e l\'indicizzazione${RESET}\n"
+    echo -e "${YELLOW}Single-Cell RNA-Seq (scRNA-Seq) analysis. Tracks gene expression at single-cell level using cell barcodes.${RESET}\n"
     echo -e "${WHITE}Arguments:${RESET}"
     echo -e "${YELLOW}workdir        ${RESET} [io]  percorso cartella di lavoro"
-    echo -e "${YELLOW}genome         ${RESET} [io]  percorso cartella di lavoro, Genome"
-    echo -e "${YELLOW}scratch        ${RESET} [io]  percorso cartella Data, qui viene salvato il log e andrebbero piazzati i file di output. Scratch"
+    echo -e "${YELLOW}genome         ${RESET} [io]  working directory path, Genome"
+    echo -e "${YELLOW}scratch        ${RESET} [io]  Data directory path"
     echo -e "${GREEN}bamsave        ${RESET}       Whether to save the BAM file"
     exit 1
 fi
@@ -84,18 +84,12 @@ docker_vals["scratch"]="/scratch"
 declare -A mounted_folders
 docker_vals["bamsave"]="${bamsave}"
 
-# --- Assemble docker command ---
-cmd="docker run --rm repbioinfo/carncellranger2 bash /home/index_align.sh <bamsave>"
 mount_str="${mounts[*]}"
-cmd="${cmd/docker run/docker run ${mount_str}}"
-
-# Replace <placeholder> tokens with docker_vals
+cmd="docker run --rm ${mount_str} repbioinfo/carncellranger2 bash /home/index_align.sh <bamsave>"
 for key in "${!docker_vals[@]}"; do
     cmd="${cmd//<${key}>/${docker_vals[${key}]}}"
 done
-
 echo -e "\n${YELLOW}Running:${RESET}\n${WHITE}${cmd}${RESET}\n"
-
 log_path="${scratch_path}/output_log.txt"
 echo -e "${YELLOW}Log:${RESET} ${WHITE}${log_path}${RESET}\n"
 

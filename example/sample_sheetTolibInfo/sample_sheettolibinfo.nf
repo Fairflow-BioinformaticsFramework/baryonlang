@@ -2,13 +2,13 @@ nextflow.enable.dsl=2
 
 /*
  * Pipeline: sample_sheettolibinfo
- * Description: produce in output il file fof.txt e rof.txt nella cartella outdir
+ * Description: Converts experiment metadata from an Excel spreadsheet into a KEY=VALUE format readable by downstream HTGTS Bash pipeline scripts.
  */
 
 // --- PARAMETERS ---
-params.outdir = "/path/to/directory/outdir" // percorso cartella di output
-params.xmlfile = "/path/to/file/xmlfile" // name del file xml
-params.configtype = "HTGTS_mouse" // tipo di cellule  - Possible values: HTGTS_mouse,HTGTS_human,CELTICSseq,polyA
+params.outdir = "/path/to/directory/outdir" // output directory path
+params.xmlfile = "/path/to/file/xmlfile" // name of the xml file
+params.configtype = "HTGTS_mouse" // cell type  - Possible values: HTGTS_mouse,HTGTS_human,CELTICSseq,polyA
 
 process SAMPLE_SHEETTOLIBINFO {
     container 'repbioinfo/htgts_pipeline_lts_v16:latest'

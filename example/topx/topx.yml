@@ -15,7 +15,7 @@ deployments:
     config:
       image: repbioinfo/topxv2:1
       volume:
-        # percorso cartella di lavoro   =====================>
-        - /c/percorso/cartella/di/lavoro:/workdir 
-        # percorso cartella contenente i dati e ricevente i risultati   =====================>
-        - /c/percorso/cartella/contenente/i/dati/e/ricevente/i/risultati:/data 
+        # Path to the working directory   =====================>
+        - /c/Path/to/the/working/directory:/workdir 
+        # Path to the folder containing input data and receiving output results   =====================>
+        - /c/Path/to/the/folder/containing/input/data/and/receiving/output/results:/data 
