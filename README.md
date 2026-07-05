@@ -66,7 +66,7 @@ Defines directories to pass to the application. Multiple sections are allowed.
 
 > A numbered `scratch` subdirectory is created inside `workdir` for each run to preserve logs and copied files across executions.
 >
-> If an `outdir` directory is defined, a numbered scratch subdirectory aligned with `workdir`'s counter is created inside it. **Do not use `outdir` for scripts that expect a specific mount path.**
+> If an `outdir` directory is defined, a numbered `output` subdirectory aligned with `workdir`'s counter is created inside it. **Do not use `outdir` for scripts that expect a specific mount path.**
 >
 > `workdir` and `outdir` cannot be read-only.
 

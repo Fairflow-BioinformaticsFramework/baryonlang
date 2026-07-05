@@ -269,7 +269,7 @@ def gen_bash(sections, script_name, as_function=False):
 
     conds = [f'[ -d "$(realpath "${{workdir}}")/scratch${{n}}" ]']
     if has_outdir:
-        conds.append(f'[ -d "$(realpath "${{outdir}}")/scratch${{n}}" ]')
+        conds.append(f'[ -d "$(realpath "${{outdir}}")/output${{n}}" ]')
 
     cond_str = ' || '.join(conds)
     w(
@@ -289,7 +289,7 @@ def gen_bash(sections, script_name, as_function=False):
         )
     if has_outdir:
         w(
-            f'{p}scratch_out_path="$(realpath "${{outdir}}")/scratch${{n}}"',
+            f'{p}scratch_out_path="$(realpath "${{outdir}}")/output${{n}}"',
             f'{p}mkdir -p "${{scratch_out_path}}"',
         )
     w("")
@@ -318,7 +318,7 @@ def gen_bash(sections, script_name, as_function=False):
         w(
             f'{p}_host_out_base="$(realpath "${{outdir}}")"',
             f'{p}mounts+=("-v \\"${{_host_out_base}}:{odir_mount}\\"")',
-            f'{p}docker_vals["outdir"]="{odir_mount}/scratch${{n}}"',
+            f'{p}docker_vals["outdir"]="{odir_mount}/output${{n}}"',
             "",
         )
 

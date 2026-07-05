@@ -74,7 +74,7 @@ fi
 # --- Scratch directory setup ---
 n=1
 while true; do
-    if [ -d "$(realpath "${workdir}")/scratch${n}" ] || [ -d "$(realpath "${outdir}")/scratch${n}" ]; then
+    if [ -d "$(realpath "${workdir}")/scratch${n}" ] || [ -d "$(realpath "${outdir}")/output${n}" ]; then
         n=$((n + 1))
     else
         break
@@ -83,7 +83,7 @@ done
 
 scratch_path="$(realpath "${workdir}")/scratch${n}"
 mkdir -p "${scratch_path}"
-scratch_out_path="$(realpath "${outdir}")/scratch${n}"
+scratch_out_path="$(realpath "${outdir}")/output${n}"
 mkdir -p "${scratch_out_path}"
 
 # --- Build docker volume mounts ---
@@ -96,7 +96,7 @@ docker_vals["workdir"]="/workDir"
 
 _host_out_base="$(realpath "${outdir}")"
 mounts+=("-v \"${_host_out_base}:/outDir\"")
-docker_vals["outdir"]="/outDir/scratch${n}"
+docker_vals["outdir"]="/outDir/output${n}"
 
 # --- Bind files and service volumes ---
 declare -A mounted_folders

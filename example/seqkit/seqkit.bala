@@ -1,4 +1,5 @@
 [research]
+name= seqkit
 description=A comprehensive toolkit for FASTA/FASTQ file manipulation, filtering, and statistics.
 [run]
 command=singularity exec --writable-tmpfs

@@ -68,14 +68,14 @@ def main():
     # --- Scratch directory setup ---
     n = 1
     while True:
-        if os.path.exists(os.path.join(os.path.abspath(args['workdir']), f'scratch{n}')) or os.path.exists(os.path.join(os.path.abspath(args['outdir']), f'scratch{n}')):
+        if os.path.exists(os.path.join(os.path.abspath(args['workdir']), f'scratch{n}')) or os.path.exists(os.path.join(os.path.abspath(args['outdir']), f'output{n}')):
             n += 1
         else:
             break
 
     scratch_path = os.path.join(os.path.abspath(args['workdir']), f'scratch{n}')
     os.makedirs(scratch_path, exist_ok=True)
-    scratch_out_path = os.path.join(os.path.abspath(args['outdir']), f'scratch{n}')
+    scratch_out_path = os.path.join(os.path.abspath(args['outdir']), f'output{n}')
     os.makedirs(scratch_out_path, exist_ok=True)
 
     # --- Build docker volume mounts ---
@@ -88,7 +88,7 @@ def main():
 
     _host_out_base = os.path.abspath(args['outdir'])
     mounts.append(f'-v "{_host_out_base}:/outDir"')
-    docker_vals['outdir'] = f'/outDir/scratch{n}'
+    docker_vals['outdir'] = f'/outDir/output{n}'
 
     # --- Bind files and service volumes ---
     mounted_folders = {}

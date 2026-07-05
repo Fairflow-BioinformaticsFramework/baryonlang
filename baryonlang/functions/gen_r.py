@@ -227,7 +227,7 @@ def gen_r(sections, script_name, as_function=False):
     )
     conds = [f"dir.exists(file.path(normalizePath(args$workdir), paste0('scratch', n)))"]
     if has_outdir:
-        conds.append("dir.exists(file.path(normalizePath(args$outdir), paste0('scratch', n)))")
+        conds.append("dir.exists(file.path(normalizePath(args$outdir), paste0('output', n)))")
     w(f"{p}  if ({' || '.join(conds)}) {{")
     w(f"{p}    n <- n + 1")
     w(f"{p}  }} else {{")
@@ -241,7 +241,7 @@ def gen_r(sections, script_name, as_function=False):
     )
     if has_outdir:
         w(
-            f"{p}scratch_out_path <- file.path(normalizePath(args$outdir), paste0('scratch', n))",
+            f"{p}scratch_out_path <- file.path(normalizePath(args$outdir), paste0('output', n))",
             f"{p}dir.create(scratch_out_path, recursive = TRUE, showWarnings = FALSE)",
         )
     w("")
@@ -265,7 +265,7 @@ def gen_r(sections, script_name, as_function=False):
         w(
             f"{p}host_out_base <- normalizePath(args$outdir)",
             f"{p}mounts <- c(mounts, paste0('-v \"', host_out_base, ':{odir_mount}\"'))",
-            f"{p}docker_vals$outdir <- paste0('{odir_mount}/scratch', n)",
+            f"{p}docker_vals$outdir <- paste0('{odir_mount}/output', n)",
             "",
         )
     for name, d in directories.items():

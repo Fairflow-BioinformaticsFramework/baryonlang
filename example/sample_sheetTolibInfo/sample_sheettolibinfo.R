@@ -57,7 +57,7 @@ if (length(errors) > 0) {
 # --- Scratch directory setup ---
 n <- 1
 repeat {
-  if (dir.exists(file.path(normalizePath(args$workdir), paste0('scratch', n))) || dir.exists(file.path(normalizePath(args$outdir), paste0('scratch', n)))) {
+  if (dir.exists(file.path(normalizePath(args$workdir), paste0('scratch', n))) || dir.exists(file.path(normalizePath(args$outdir), paste0('output', n)))) {
     n <- n + 1
   } else {
     break
@@ -66,7 +66,7 @@ repeat {
 
 scratch_path <- file.path(normalizePath(args$workdir), paste0('scratch', n))
 dir.create(scratch_path, recursive = TRUE, showWarnings = FALSE)
-scratch_out_path <- file.path(normalizePath(args$outdir), paste0('scratch', n))
+scratch_out_path <- file.path(normalizePath(args$outdir), paste0('output', n))
 dir.create(scratch_out_path, recursive = TRUE, showWarnings = FALSE)
 
 # --- Build docker volume mounts ---
@@ -79,7 +79,7 @@ docker_vals$workdir <- '/workDir'
 
 host_out_base <- normalizePath(args$outdir)
 mounts <- c(mounts, paste0('-v "', host_out_base, ':/outDir"'))
-docker_vals$outdir <- paste0('/outDir/scratch', n)
+docker_vals$outdir <- paste0('/outDir/output', n)
 
 # --- Bind files and service volumes ---
 mounted_folders <- list()

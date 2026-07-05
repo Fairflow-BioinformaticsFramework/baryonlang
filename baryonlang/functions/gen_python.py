@@ -230,7 +230,7 @@ def gen_python(sections, script_name, as_function=False):
     )
     conds = ["os.path.exists(os.path.join(os.path.abspath(args['workdir']), f'scratch{n}'))"]
     if has_outdir:
-        conds.append("os.path.exists(os.path.join(os.path.abspath(args['outdir']), f'scratch{n}'))")
+        conds.append("os.path.exists(os.path.join(os.path.abspath(args['outdir']), f'output{n}'))")
     w(f"        if {' or '.join(conds)}:")
     w("            n += 1")
     w("        else:")
@@ -243,7 +243,7 @@ def gen_python(sections, script_name, as_function=False):
     )
     if has_outdir:
         w(
-            "    scratch_out_path = os.path.join(os.path.abspath(args['outdir']), f'scratch{n}')",
+            "    scratch_out_path = os.path.join(os.path.abspath(args['outdir']), f'output{n}')",
             "    os.makedirs(scratch_out_path, exist_ok=True)",
         )
     w("")
@@ -265,7 +265,7 @@ def gen_python(sections, script_name, as_function=False):
         w(
             f"    _host_out_base = os.path.abspath(args['outdir'])",
             f"    mounts.append(f'-v \"{{_host_out_base}}:{odir_mount}\"')", 
-            f"    docker_vals['outdir'] = f'{odir_mount}/scratch{{n}}'",     
+            f"    docker_vals['outdir'] = f'{odir_mount}/output{{n}}'",     
             "",
         )
     for name, d in directories.items():
