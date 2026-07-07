@@ -263,9 +263,8 @@ def gen_python(sections, script_name, as_function=False):
     if has_outdir:
         odir_mount = directories['outdir']['mount']
         w(
-            f"    _host_out_base = os.path.abspath(args['outdir'])",
-            f"    mounts.append(f'-v \"{{_host_out_base}}:{odir_mount}\"')", 
-            f"    docker_vals['outdir'] = f'{odir_mount}/output{{n}}'",     
+            f"    mounts.append(f'-v \"{{scratch_out_path}}:{odir_mount}\"')",
+            f"    docker_vals['outdir'] = '{odir_mount}'",     
             "",
         )
     for name, d in directories.items():

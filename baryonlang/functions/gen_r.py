@@ -263,9 +263,8 @@ def gen_r(sections, script_name, as_function=False):
     if has_outdir:
         odir_mount = directories['outdir']['mount']
         w(
-            f"{p}host_out_base <- normalizePath(args$outdir)",
-            f"{p}mounts <- c(mounts, paste0('-v \"', host_out_base, ':{odir_mount}\"'))",
-            f"{p}docker_vals$outdir <- paste0('{odir_mount}/output', n)",
+            f"{p}mounts <- c(mounts, paste0('-v \"', scratch_out_path, ':{odir_mount}\"'))",
+            f"{p}docker_vals$outdir <- '{odir_mount}'",
             "",
         )
     for name, d in directories.items():

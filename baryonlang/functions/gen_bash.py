@@ -316,9 +316,8 @@ def gen_bash(sections, script_name, as_function=False):
     if has_outdir:
         odir_mount = directories['outdir']['mount']
         w(
-            f'{p}_host_out_base="$(realpath "${{outdir}}")"',
-            f'{p}mounts+=("-v \\"${{_host_out_base}}:{odir_mount}\\"")',
-            f'{p}docker_vals["outdir"]="{odir_mount}/output${{n}}"',
+            f'{p}mounts+=("-v \\"${{scratch_out_path}}:{odir_mount}\\"")',
+            f'{p}docker_vals["outdir"]="{odir_mount}"',
             "",
         )
 
