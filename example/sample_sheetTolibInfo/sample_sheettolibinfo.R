@@ -77,9 +77,8 @@ service_idx <- 1
 mounts <- c(mounts, paste0('-v "', scratch_path, ':/workDir"'))
 docker_vals$workdir <- '/workDir'
 
-host_out_base <- normalizePath(args$outdir)
-mounts <- c(mounts, paste0('-v "', host_out_base, ':/outDir"'))
-docker_vals$outdir <- paste0('/outDir/output', n)
+mounts <- c(mounts, paste0('-v "', scratch_out_path, ':/outDir"'))
+docker_vals$outdir <- '/outDir'
 
 # --- Bind files and service volumes ---
 mounted_folders <- list()

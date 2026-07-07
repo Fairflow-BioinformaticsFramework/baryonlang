@@ -94,9 +94,8 @@ service_idx=1
 mounts+=("-v \"${scratch_path}:/workDir\"")
 docker_vals["workdir"]="/workDir"
 
-_host_out_base="$(realpath "${outdir}")"
-mounts+=("-v \"${_host_out_base}:/outDir\"")
-docker_vals["outdir"]="/outDir/output${n}"
+mounts+=("-v \"${scratch_out_path}:/outDir\"")
+docker_vals["outdir"]="/outDir"
 
 # --- Bind files and service volumes ---
 declare -A mounted_folders

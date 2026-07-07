@@ -86,9 +86,8 @@ def main():
     mounts.append(f'-v "{scratch_path}:/workDir"')
     docker_vals['workdir'] = '/workDir'
 
-    _host_out_base = os.path.abspath(args['outdir'])
-    mounts.append(f'-v "{_host_out_base}:/outDir"')
-    docker_vals['outdir'] = f'/outDir/output{n}'
+    mounts.append(f'-v "{scratch_out_path}:/outDir"')
+    docker_vals['outdir'] = '/outDir'
 
     # --- Bind files and service volumes ---
     mounted_folders = {}
