@@ -2,7 +2,7 @@
 # Date      : 2026-06-05
 # Project   : https://github.com/Fairflow-BioinformaticsFramework
 # Authors   : 
-# Version   : 1.1
+# Version   : 1.0
 # ----------------------------------------------------------------------------------------------------------------------
 
 from baryonlang.functions.gen_nextflow import gen_nextflow
