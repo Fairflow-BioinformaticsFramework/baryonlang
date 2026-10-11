@@ -1,2 +1,0 @@
-[console_scripts]
-baryon = baryonlang.baryon:main
