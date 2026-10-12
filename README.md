@@ -441,7 +441,11 @@ pip install git+https://github.com/Fairflow-BioinformaticsFramework/Baryonlang.g
 pip install "git+https://github.com/Fairflow-BioinformaticsFramework/Baryonlang.git@v1.0.0"
 ```
 
-The current release (1.1) can be installed in the same way by replacing the tag with `@v1.1.0`. Only one version can be installed per Python environment: use a separate virtual environment for each one (`python -m venv <env-name>`).
+> **Version 1.1** 
+
+```bash
+pip install "git+https://github.com/Fairflow-BioinformaticsFramework/Baryonlang.git@main"
+```
 
 ### Verify the installation
 
