@@ -1,0 +1,20 @@
+# ------- nextflow sample command ------- #
+
+docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock -v $(pwd):$(pwd) -v /common/base/path:/common/base/path -w $(pwd) -e DOCKER_API_VERSION=1.44 nextflow/nextflow:26.04.6 nextflow run topx.nf
+
+# ------- streamflow sample command ------- #
+
+docker run --rm -it -v /var/run/docker.sock:/var/run/docker.sock -v $(which docker):/usr/bin/docker -v "$(pwd):/workflow" -v /common/base/path:/common/base/path -w /workflow alphaunito/streamflow streamflow run topx.yml
+
+# ------- python sample command ------- #
+
+python topx.py /path/to/directory/workdir /path/to/directory/data annotated csv 10 , <logged> <type>
+
+# ------- R sample command ------- #
+
+Rscript topx.R /path/to/directory/workdir /path/to/directory/data annotated csv 10 , <logged> <type>
+
+# ------- bash sample command ------- #
+
+bash topx.sh /path/to/directory/workdir /path/to/directory/data annotated "csv" 10 "," <logged> <type>
+

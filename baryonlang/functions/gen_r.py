@@ -1,4 +1,5 @@
 import re
+import os
 
 def parse_values(raw_values):
     """Parse comma-separated values respecting single/double quoted tokens."""
@@ -33,6 +34,9 @@ def gen_r(sections, script_name, as_function=False):
                 'mount':       c.get('mount', f'/{name}').strip(),
                 'flag':        c.get('flag', 'io').strip().lower(),
                 'description': c.get('description', name),
+                'copy':        c.get('copy', 'false').strip().lower(),
+                'optional':    c.get('optional', 'false').strip().lower() in ('true', 'yes'),
+                'quote':       c.get('quote', 'false').strip().lower() in ('true', 'yes'),
             }
     has_workdir = 'workdir' in directories
     has_outdir  = 'outdir'  in directories
@@ -43,8 +47,11 @@ def gen_r(sections, script_name, as_function=False):
             c = item['content']
             files.append({
                 'name':        c.get('name', 'input_file'),
-                'flag':        c.get('flag', 'cp').strip().lower(),
+                'copy':        c.get('copy', 'yes').strip().lower() in ('true', 'yes'),
                 'description': c.get('description', ''),
+                'optional':    c.get('optional', 'false').strip().lower() in ('true', 'yes'),
+                'quote':       c.get('quote', 'false').strip().lower() in ('true', 'yes'),
+                'flag':        c.get('flag', '').strip().lower(),
             })
     # ----------------- Collect parameters and their allowed values -------------------
     parameters = []
@@ -56,6 +63,9 @@ def gen_r(sections, script_name, as_function=False):
                 'name':        c.get('name', 'param'),
                 'description': c.get('description', ''),
                 'values':      parse_values(raw_values),
+                'value': c.get('default', '').strip().strip("'\""),
+                'optional':    c.get('optional', 'false').strip().lower() in ('true', 'yes'),
+                'quote':       c.get('quote', 'false').strip().lower() in ('true', 'yes'),
             })
     # --------------------- Build docker command template -------------------
     bala_cmd    = run_sec.get('command', 'docker run --rm').strip()
@@ -66,6 +76,12 @@ def gen_r(sections, script_name, as_function=False):
     for item in sections:
         if item['type'] in ('directory', 'file', 'parameter') and 'name' in item['content']:
             dynamic_items.append(item)
+# ----------------- Collect explicit quote flags per item name ----------------
+    quote_map = {}
+    for item in sections:
+        if item['type'] in ('directory', 'file', 'parameter') and 'name' in item['content']:
+            q_name = item['content']['name']
+            quote_map[q_name] = item['content'].get('quote', 'false').strip().lower() in ('true', 'yes')
     TYPE_COLORS = {
         'directory': '\\033[93m',        # yellow
         'file':      '\\033[38;5;208m',  # orange
@@ -116,12 +132,16 @@ def gen_r(sections, script_name, as_function=False):
             w("  cat('\\n')")
         w("  cat_col('Arguments:', color = WHITE)")
         for item in dynamic_items:
-            name     = item['content']['name']
-            color    = TYPE_COLORS.get(item['type'], DEFAULT_COLOR)
-            desc     = item['content'].get('description', '')
-            flag     = item['content'].get('flag', '')
-            flag_str = f" [{flag}]" if flag else ""
-            padded   = name.ljust(15)
+            name  = item['content']['name']
+            color = TYPE_COLORS.get(item['type'], DEFAULT_COLOR)
+            desc  = item['content'].get('description', '')
+            if item['type'] == 'file':
+                copy_val = item['content'].get('copy', 'yes')
+                flag_str = f" [copy={copy_val}]"
+            else:
+                flag = item['content'].get('flag', '')
+                flag_str = f" [{flag}]" if flag else ""
+            padded = name.ljust(15)
             w(f"  cat('{color}{padded}{flag_str.ljust(6)} {desc}', RESET, '\\n', sep = '')")
         w(
             "  quit(status = 1)",
@@ -148,12 +168,16 @@ def gen_r(sections, script_name, as_function=False):
             w(f'    cat(YELLOW, "{research_desc}", RESET, "\\n\\n", sep = "")')
         w("    cat_col('Arguments:', color = WHITE)")
         for item in dynamic_items:
-            name     = item['content']['name']
-            color    = TYPE_COLORS.get(item['type'], DEFAULT_COLOR)
-            desc     = item['content'].get('description', '')
-            flag     = item['content'].get('flag', '')
-            flag_str = f" [{flag}]" if flag else ""
-            padded   = name.ljust(15)
+            name  = item['content']['name']
+            color = TYPE_COLORS.get(item['type'], DEFAULT_COLOR)
+            desc  = item['content'].get('description', '')
+            if item['type'] == 'file':
+                copy_val = item['content'].get('copy', 'yes')
+                flag_str = f" [copy={copy_val}]"
+            else:
+                flag = item['content'].get('flag', '')
+                flag_str = f" [{flag}]" if flag else ""
+            padded = name.ljust(15)
             w(f"    cat('{color}{padded}{flag_str.ljust(6)} {desc}', RESET, '\\n', sep = '')")
         w(
             "    stop('Missing required arguments')",
@@ -166,6 +190,16 @@ def gen_r(sections, script_name, as_function=False):
             w(f"  args${name} <- {name}")
         w("")
     p = "  " if as_function else ""
+    w(f"{p}# --- Resolve 'default' keyword using each parameter's configured value= ---")
+    for param in parameters:
+        if param['value']:
+            name = param['name']
+            w(
+                f"{p}if (args${name} == 'default') {{",
+                f"{p}  args${name} <- '{param['value']}'",
+                f"{p}}}",
+            )
+    w("")
     # ---------------------------- Validation block --------------------------
     w(
         f"{p}# --- Input validation ---",
@@ -175,32 +209,55 @@ def gen_r(sections, script_name, as_function=False):
     for item in dynamic_items:
         if item['type'] != 'directory':
             continue
-        name = item['content']['name']
-        w(
-            f"{p}if (!dir.exists(args${name})) {{",
-            f"{p}  errors <- c(errors, paste0('Directory not found: {name} = ', args${name}))",
-            f"{p}}}",
-        )
+        name     = item['content']['name']
+        optional = item['content'].get('optional', 'false').lower() in ('true', 'yes')
+        if optional:
+            w(
+                f"{p}if (args${name} != 'dummy' && !dir.exists(args${name})) {{",
+                f"{p}  errors <- c(errors, paste0('Directory not found: {name} = ', args${name}))",
+                f"{p}}}",
+            )
+        else:
+            w(
+                f"{p}if (!dir.exists(args${name})) {{",
+                f"{p}  errors <- c(errors, paste0('Directory not found: {name} = ', args${name}))",
+                f"{p}}}",
+            )
     for item in dynamic_items:
         if item['type'] != 'file':
             continue
-        name = item['content']['name']
-        w(
-            f"{p}if (!file.exists(args${name})) {{",
-            f"{p}  errors <- c(errors, paste0('File not found: {name} = ', args${name}))",
-            f"{p}}}",
-        )
+        name     = item['content']['name']
+        optional = item['content'].get('optional', 'false').lower() in ('true', 'yes')
+        if optional:
+            w(
+                f"{p}if (args${name} != 'dummy' && !file.exists(args${name})) {{",
+                f"{p}  errors <- c(errors, paste0('File not found: {name} = ', args${name}))",
+                f"{p}}}",
+            )
+        else:
+            w(
+                f"{p}if (!file.exists(args${name})) {{",
+                f"{p}  errors <- c(errors, paste0('File not found: {name} = ', args${name}))",
+                f"{p}}}",
+            )
     for param in parameters:
         if not param['values']:
             continue
         allowed_r       = 'c(' + ', '.join(f'"{v}"' for v in param['values']) + ')'
         name            = param['name']
         allowed_display = ', '.join(param['values'])
-        w(
-            f"{p}if (!args${name} %in% {allowed_r}) {{",
-            f"{p}  errors <- c(errors, paste0('Invalid value for {name}: ', args${name}, '. Allowed: {allowed_display}'))",
-            f"{p}}}",
-        )
+        if param['optional']:
+            w(
+                f"{p}if (args${name} != 'dummy' && !(args${name} %in% {allowed_r})) {{",
+                f"{p}  errors <- c(errors, paste0('Invalid value for {name}: ', args${name}, '. Allowed: {allowed_display}'))",
+                f"{p}}}",
+            )
+        else:
+            w(
+                f"{p}if (!(args${name} %in% {allowed_r})) {{",
+                f"{p}  errors <- c(errors, paste0('Invalid value for {name}: ', args${name}, '. Allowed: {allowed_display}'))",
+                f"{p}}}",
+            )
     if as_function:
         w(
             "",
@@ -253,6 +310,14 @@ def gen_r(sections, script_name, as_function=False):
         f"{p}service_idx <- 1",
         "",
     )
+
+    quote_entries = ", ".join(f"{n} = {'TRUE' if q else 'FALSE'}" for n, q in quote_map.items() )
+    w(
+        f"{p}# --- Explicit quoting flags from .bala 'quote=' keyword ---",
+        f"{p}force_quote <- list({quote_entries})",
+        "",
+    )
+
     if has_workdir:
         wdir_mount = directories['workdir']['mount']
         w(
@@ -270,22 +335,40 @@ def gen_r(sections, script_name, as_function=False):
     for name, d in directories.items():
         if name in ('workdir', 'outdir'):
             continue
-        mount = d['mount']
-        flag  = d['flag']
-        if flag == 'ro':
-            w(
-                f"{p}# {name}: read-only directory",
-                f"{p}mounts <- c(mounts, paste0('-v \"', normalizePath(args${name}), ':{mount}:ro\"'))",
-                f"{p}docker_vals${name} <- '{mount}'",
-                "",
-            )
+        mount     = d['mount']
+        flag      = d['flag']
+        copy_dir  = d.get('copy', 'false') in ('true', 'yes')
+        optional  = d.get('optional', False)
+        ro_suffix = ':ro' if flag == 'ro' else ''
+        label     = 'read-only directory' if flag == 'ro' else f'read-write directory [{flag}]'
+        indent    = f"{p}  " if optional else p
+
+        if copy_dir:
+            body = [
+                f"{indent}# {name}: copy into workdir, then mount the copy ({label})",
+                f"{indent}src_{name} <- normalizePath(args${name})",
+                f"{indent}dst_{name} <- file.path(scratch_path, basename(src_{name}))",
+                f"{indent}invisible(file.copy(src_{name}, scratch_path, recursive = TRUE))",
+                f"{indent}mounts <- c(mounts, paste0('-v \"', dst_{name}, ':{mount}{ro_suffix}\"'))",
+                f"{indent}docker_vals${name} <- '{mount}'",
+            ]
         else:
-            w(
-                f"{p}# {name}: read-write directory [{flag}]",
-                f"{p}mounts <- c(mounts, paste0('-v \"', normalizePath(args${name}), ':{mount}\"'))",
-                f"{p}docker_vals${name} <- '{mount}'",
-                "",
-            )
+            body = [
+                f"{indent}# {name}: {label}",
+                f"{indent}mounts <- c(mounts, paste0('-v \"', normalizePath(args${name}), ':{mount}{ro_suffix}\"'))",
+                f"{indent}docker_vals${name} <- '{mount}'",
+            ]
+
+        if optional:
+            w(f"{p}# {name} is optional: mount only if a real path is passed, use 'dummy' placeholder otherwise")
+            w(f"{p}if (args${name} != 'dummy') {{")
+            w(*body)
+            w(f"{p}}} else {{")
+            w(f"{p}  docker_vals${name} <- 'dummy'")
+            w(f"{p}}}")
+        else:
+            w(*body)
+        w("")
     w(
         f"{p}# --- Bind files and service volumes ---",
         f"{p}mounted_folders <- list()",
@@ -293,28 +376,38 @@ def gen_r(sections, script_name, as_function=False):
     )
     for f in files:
         name       = f['name']
-        flag       = f['flag']
+        copy_file  = f['copy']
+        optional   = f['optional']
+        ro_suffix  = ':ro' if f.get('flag', '') == 'ro' else ''        
         wdir_mount = directories.get('workdir', {}).get('mount', '/workdir')
-        if flag == 'cp' or flag not in ('ro', 'nc'):
-            w(
-                f"{p}src_{name} <- normalizePath(args${name})",
-                f"{p}file.copy(src_{name}, scratch_path)",
-                f"{p}docker_vals${name} <- paste0('{wdir_mount}/', basename(src_{name}))",
-                "",
-            )
-        elif flag in ('ro', 'nc'):
-            w(
-                f"{p}src_{name} <- normalizePath(args${name})",
-                f"{p}dir_{name} <- dirname(src_{name})",
-                f"{p}if (is.null(mounted_folders[[dir_{name}]])) {{",
-                f"{p}  m_point <- paste0('/service', service_idx)",
-                f"{p}  mounted_folders[[dir_{name}]] <- m_point",
-                f"{p}  mounts <- c(mounts, paste0('-v \"', dir_{name}, ':', m_point, ':ro\"'))",
-                f"{p}  service_idx <- service_idx + 1",
-                f"{p}}}",
-                f"{p}docker_vals${name} <- paste0(mounted_folders[[dir_{name}]], '/', basename(src_{name}))",
-                "",
-            )
+        indent     = f"{p}  " if optional else p
+        if copy_file:
+            body = [
+                f"{indent}src_{name} <- normalizePath(args${name})",
+                f"{indent}invisible(file.copy(src_{name}, scratch_path))",
+                f"{indent}docker_vals${name} <- paste0('{wdir_mount}/', basename(src_{name}))",
+            ]
+        else:  # copy=false -> mount read-only della cartella genitrice
+            body = [
+                f"{indent}src_{name} <- normalizePath(args${name})",
+                f"{indent}dir_{name} <- dirname(src_{name})",
+                f"{indent}if (is.null(mounted_folders[[dir_{name}]])) {{",
+                f"{indent}  m_point <- paste0('/service', service_idx)",
+                f"{indent}  mounted_folders[[dir_{name}]] <- m_point",
+                f"{indent}  mounts <- c(mounts, paste0('-v \"', dir_{name}, ':', m_point, '{ro_suffix}\"'))",                
+                f"{indent}  service_idx <- service_idx + 1",
+                f"{indent}}}",
+                f"{indent}docker_vals${name} <- paste0(mounted_folders[[dir_{name}]], '/', basename(src_{name}))",
+            ]
+        if optional:
+            w(f"{p}if (args${name} != 'dummy') {{")
+            w(*body)
+            w(f"{p}}} else {{")
+            w(f"{p}  docker_vals${name} <- 'dummy'")
+            w(f"{p}}}")
+        else:
+            w(*body)
+        w("")
     for param in parameters:
         name = param['name']
         w(f"{p}docker_vals${name} <- args${name}")
@@ -337,7 +430,8 @@ def gen_r(sections, script_name, as_function=False):
         f"{p}  key <- gsub('<|>', '', ph)",
         f"{p}  val <- docker_vals[[key]]",
         f"{p}  if (!is.null(val)) {{",
-        f"{p}    if (grepl('[;&|()<>$\\\\`\"\\'\\\\s]', val, perl = TRUE)) val <- paste0('\"', gsub('\"', '\\\\\"', val, fixed = TRUE), '\"')",
+        f"{p}    needs_quote <- val != 'dummy' && (isTRUE(force_quote[[key]]) || grepl('[;&|()<>$`\"\\'\\\\s]', val, perl = TRUE))",
+        f"{p}    if (needs_quote) val <- paste0('\"', gsub('\"', '\\\\\"', val, fixed = TRUE), '\"')",
         f"{p}    cmd <- gsub(ph, val, cmd, fixed = TRUE)",
         f"{p}  }}",
         f"{p}}}",
@@ -382,3 +476,57 @@ def gen_r(sections, script_name, as_function=False):
     with open(output_filename, "w", encoding="utf-8") as out_f:
         out_f.write("\n".join(L))
     print(f"\033[92mR script '{output_filename}' generated successfully.\033[0m")
+    # ---------------------------- Sample launch command file ---------------------------------
+    tool_name = exec_name 
+    arg_placeholders = []      
+    kwarg_placeholders = []    
+    for item in dynamic_items:
+        name = item['content']['name']
+        if item['type'] == 'parameter':
+            param = next((pm for pm in parameters if pm['name'] == name), None)
+            default_val = param['value'] if param else ''
+            value = default_val if default_val else f"<{name}>"
+        elif item['type'] == 'directory':
+            value = f"/path/to/directory/{name}"
+        else:
+            value = f"/path/to/file/{name}"
+        arg_placeholders.append(f'"{value}"' if quote_map.get(name, False) else value)
+        kwarg_placeholders.append(f'{name} = "{value}"')
+    if as_function:
+        args_str = ', '.join(kwarg_placeholders)
+        run_cmd = f'source("{tool_name}.R")\n{tool_name}({args_str})'
+    else:
+        args_str = ' '.join(arg_placeholders)
+        run_cmd = f"Rscript {tool_name}.R {args_str}"
+    command_file = f"{tool_name}_command.txt"
+    marker = "# ------- R sample command ------- #"
+    file_existed = os.path.exists(command_file)
+    if file_existed:
+        with open(command_file, "r") as f:
+            lines = f.readlines()
+        marker_index = -1
+        for i, line in enumerate(lines):
+            if marker in line:
+                marker_index = i
+                break
+        if marker_index != -1:
+            del lines[marker_index : marker_index + 4]
+            new_lines = lines[:marker_index]
+            remaining_lines = lines[marker_index:]
+        else:
+            new_lines = lines
+            remaining_lines = []
+    else:
+        new_lines = []
+        remaining_lines = []
+    new_block = [
+        f"{marker}\n",
+        "\n",
+        f"{run_cmd.strip()}\n",
+        "\n",
+    ]
+    final_lines = new_lines + new_block + remaining_lines
+    with open(command_file, "w") as f:
+        f.writelines(final_lines)
+    action = "updated" if file_existed else "generated"
+    print(f"\033[92mLaunch command file '{command_file}' successfully {action}.\033[0m")

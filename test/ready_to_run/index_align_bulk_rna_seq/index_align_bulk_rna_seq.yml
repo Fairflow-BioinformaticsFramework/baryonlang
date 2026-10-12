@@ -1,0 +1,23 @@
+version: v1.0
+workflows:
+  index_align_bulk_rna_seq-workflow:
+    type: cwl
+    config:
+      file: index_align_bulk_rna_seq.cwl
+      settings: index_align_bulk_rna_seq-params.yml
+    bindings:
+      - step: /
+        target:
+          deployment: docker-index_align_bulk_rna_seq
+deployments:
+  docker-index_align_bulk_rna_seq:
+    type: docker
+    config:
+      image: repbioinfo/rnaseqstar_v2
+      volume:
+        # working directory path   =====================>
+        - /home/baseolo/Baryon_SourceCode/test/testdata/index_align_bulk_rna_seq/workdir:/workDir 
+        # Genome directory path   =====================>
+        - /home/baseolo/Baryon_SourceCode/test/testdata/index_align_bulk_rna_seq/Genome:/genome 
+        # Data directory path   =====================>
+        - /home/baseolo/Baryon_SourceCode/test/testdata/index_align_bulk_rna_seq/Data:/scratch       

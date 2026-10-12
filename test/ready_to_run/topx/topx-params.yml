@@ -1,0 +1,28 @@
+# -------------------- Bayron project -------------
+Creator: "Baryon"
+ 
+# Real name of the folder mounted for 'data' -- used to name its copy in workdir/scratch
+data_origin_name: "datax" # <=====================
+ 
+# Input file name without extension
+matrixname: "annotated" # <=====================
+ 
+# Input file format
+# Possible values: csv, txt
+format: "csv" # <=====================
+ 
+# Threshold for selecting top genes (typically between 10 and 2000 depending on dataset size)
+threshold: "10" # <=====================
+ 
+# File separator (use "," for CSV, "\t" for TSV)
+# Possible values: ',','\t'
+separator: "," # <=====================
+ 
+# Indicates whether the count matrix values are already log-transformed (TRUE) or not (FALSE).
+# Possible values: FALSE,TRUE
+logged: "FALSE" # <=====================
+ 
+# Type of analysis to perform.
+# Possible values: expression, variance
+type: "expression" # <=====================
+ 

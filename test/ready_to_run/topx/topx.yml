@@ -1,0 +1,22 @@
+version: v1.0
+workflows:
+  topx-workflow:
+    type: cwl
+    config:
+      file: topx.cwl
+      settings: topx-params.yml
+    bindings:
+      - step: /
+        target:
+          deployment: docker-topx
+deployments:
+  docker-topx:
+    type: docker
+    config:
+      image: repbioinfo/topxv2:1
+      volume:
+      
+        # Path to the working directory   =====================>
+        - /home/baseolo/Baryon_SourceCode/test/testdata/topx/workdir:/workdir
+        # Path to the folder containing input data and receiving output results   =====================>
+        - /home/baseolo/Baryon_SourceCode/test/testdata/topx/datax:/data 

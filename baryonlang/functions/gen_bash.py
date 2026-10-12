@@ -1,4 +1,5 @@
 import re
+import os
 
 def parse_values(raw_values):
     """Parse comma-separated values respecting single/double quoted tokens."""
@@ -35,6 +36,9 @@ def gen_bash(sections, script_name, as_function=False):
                 'mount':       c.get('mount', f'/{name}').strip(),
                 'flag':        c.get('flag', 'io').strip().lower(),
                 'description': c.get('description', name),
+                'copy':        c.get('copy', 'false').strip().lower(),
+                'optional':    c.get('optional', 'false').strip().lower() in ('true', 'yes'),
+                'quote':       c.get('quote', 'false').strip().lower() in ('true', 'yes'),
             }
     has_workdir = 'workdir' in directories
     has_outdir  = 'outdir'  in directories
@@ -48,8 +52,11 @@ def gen_bash(sections, script_name, as_function=False):
             c = item['content']
             files.append({
                 'name':        c.get('name', 'input_file'),
-                'flag':        c.get('flag', 'cp').strip().lower(),
+                'copy':        c.get('copy', 'yes').strip().lower() in ('true', 'yes'),
                 'description': c.get('description', ''),
+                'optional':    c.get('optional', 'false').strip().lower() in ('true', 'yes'),
+                'quote':       c.get('quote', 'false').strip().lower() in ('true', 'yes'),
+                'flag':        c.get('flag', '').strip().lower(),
             })
 
     # -------------------------------------------------------------------------
@@ -64,6 +71,9 @@ def gen_bash(sections, script_name, as_function=False):
                 'name':        c.get('name', 'param'),
                 'description': c.get('description', ''),
                 'values':      parse_values(raw_values),
+                'value':       c.get('default', '').strip().strip("'\""),
+                'optional':    c.get('optional', 'false').strip().lower() in ('true', 'yes'),
+                'quote':       c.get('quote', 'false').strip().lower() in ('true', 'yes'),
             })
 
     # -------------------------------------------------------------------------
@@ -145,11 +155,16 @@ def gen_bash(sections, script_name, as_function=False):
             w(f'    echo -e "${{YELLOW}}{research_desc}${{RESET}}\\n"')
         w('    echo -e "${WHITE}Arguments:${RESET}"')
         for item in dynamic_items:
-            name     = item['content']['name']
-            color    = TYPE_COLORS.get(item['type'], DEFAULT_COLOR)
-            desc     = item['content'].get('description', '')
-            flag     = item['content'].get('flag', '')
-            flag_str = f" [{flag}]" if flag else ""
+            name  = item['content']['name']
+            color = TYPE_COLORS.get(item['type'], DEFAULT_COLOR)
+            desc  = item['content'].get('description', '')
+            if item['type'] == 'file':
+                copy_val  = item['content'].get('copy', 'yes')
+                file_flag = item['content'].get('flag', '')
+                flag_str  = f" [copy={copy_val}{', ro' if file_flag == 'ro' else ''}]"
+            else:
+                flag = item['content'].get('flag', '')
+                flag_str = f" [{flag}]" if flag else ""
             w(f'    echo -e "${{{color}}}{name.ljust(15)}${{RESET}}{flag_str.ljust(6)} {desc}"')
         w(
             "    exit 1",
@@ -181,11 +196,16 @@ def gen_bash(sections, script_name, as_function=False):
             w(f'        echo -e "${{YELLOW}}{research_desc}${{RESET}}\\n"')
         w('        echo -e "${WHITE}Arguments:${RESET}"')
         for item in dynamic_items:
-            name     = item['content']['name']
-            color    = TYPE_COLORS.get(item['type'], DEFAULT_COLOR)
-            desc     = item['content'].get('description', '')
-            flag     = item['content'].get('flag', '')
-            flag_str = f" [{flag}]" if flag else ""
+            name  = item['content']['name']
+            color = TYPE_COLORS.get(item['type'], DEFAULT_COLOR)
+            desc  = item['content'].get('description', '')
+            if item['type'] == 'file':
+                copy_val  = item['content'].get('copy', 'yes')
+                file_flag = item['content'].get('flag', '')
+                flag_str  = f" [copy={copy_val}{', ro' if file_flag == 'ro' else ''}]"
+            else:
+                flag = item['content'].get('flag', '')
+                flag_str = f" [{flag}]" if flag else ""
             w(f'        echo -e "${{{color}}}{name.ljust(15)}${{RESET}}{flag_str.ljust(6)} {desc}"')
         w(
             "        return 1",
@@ -195,6 +215,17 @@ def gen_bash(sections, script_name, as_function=False):
 
     # Indentation prefix for function body
     p = "    " if as_function else ""
+
+    w(f"{p}# --- Resolve 'default' keyword using each parameter's configured value= ---")
+    for param in parameters:
+        if param['value']:
+            name = param['name']
+            w(
+                f'{p}if [ "${{{name}}}" = "default" ]; then',
+                f'{p}    {name}="{param["value"]}"',
+                f"{p}fi",
+            )
+    w("")
 
     # -------------------------------------------------------------------------
     # Validation block
@@ -206,22 +237,37 @@ def gen_bash(sections, script_name, as_function=False):
     for item in dynamic_items:
         if item['type'] != 'directory':
             continue
-        name = item['content']['name']
-        w(
-            f'{p}if [ ! -d "${{{name}}}" ]; then',
-            f'{p}    errors+=("Directory not found: {name} = ${{{name}}}")',
-            f"{p}fi",
-        )
-
+        name     = item['content']['name']
+        optional = item['content'].get('optional', 'false').lower() in ('true', 'yes')
+        if optional:
+            w(
+                f'{p}if [ "${{{name}}}" != "dummy" ] && [ ! -d "${{{name}}}" ]; then',
+                f'{p}    errors+=("Directory not found: {name} = ${{{name}}}")',
+                f"{p}fi",
+            )
+        else:
+            w(
+                f'{p}if [ ! -d "${{{name}}}" ]; then',
+                f'{p}    errors+=("Directory not found: {name} = ${{{name}}}")',
+                f"{p}fi",
+            )
     for item in dynamic_items:
         if item['type'] != 'file':
             continue
-        name = item['content']['name']
-        w(
-            f'{p}if [ ! -f "${{{name}}}" ]; then',
-            f'{p}    errors+=("File not found: {name} = ${{{name}}}")',
-            f"{p}fi",
-        )
+        name     = item['content']['name']
+        optional = item['content'].get('optional', 'false').lower() in ('true', 'yes')
+        if optional:
+            w(
+                f'{p}if [ "${{{name}}}" != "dummy" ] && [ ! -f "${{{name}}}" ]; then',
+                f'{p}    errors+=("File not found: {name} = ${{{name}}}")',
+                f"{p}fi",
+            )
+        else:
+            w(
+                f'{p}if [ ! -f "${{{name}}}" ]; then',
+                f'{p}    errors+=("File not found: {name} = ${{{name}}}")',
+                f"{p}fi",
+            )
 
     for param in parameters:
         if not param['values']:
@@ -229,12 +275,18 @@ def gen_bash(sections, script_name, as_function=False):
         name            = param['name']
         allowed         = '|'.join(re.escape(v) for v in param['values'])
         allowed_display = str(param['values'])
-        w(
-            f'{p}if ! echo "${{{name}}}" | grep -qE "^({allowed})$"; then',
-            f'{p}    errors+=("Invalid value for {name}: ${{{name}}}. Allowed: {allowed_display}")',
-            f"{p}fi",
-        )
-
+        if param['optional']:
+            w(
+                f'{p}if [ "${{{name}}}" != "dummy" ] && ! echo "${{{name}}}" | grep -qE "^({allowed})$"; then',
+                f'{p}    errors+=("Invalid value for {name}: ${{{name}}}. Allowed: {allowed_display}")',
+                f"{p}fi",
+            )
+        else:
+            w(
+                f'{p}if ! echo "${{{name}}}" | grep -qE "^({allowed})$"; then',
+                f'{p}    errors+=("Invalid value for {name}: ${{{name}}}. Allowed: {allowed_display}")',
+                f"{p}fi",
+            )
     if as_function:
         w(
             "",
@@ -324,53 +376,79 @@ def gen_bash(sections, script_name, as_function=False):
     for name, d in directories.items():
         if name in ('workdir', 'outdir'):
             continue
-        mount = d['mount']
-        flag  = d['flag']
-        if flag == 'ro':
-            w(
-                f"{p}# {name}: read-only directory",
-                f'{p}mounts+=("-v \\"$(realpath "${{{name}}}"):{mount}:ro\\"")',
-                f'{p}docker_vals["{name}"]="{mount}"',
-                "",
-            )
-        else:
-            w(
-                f"{p}# {name}: read-write directory [{flag}]",
-                f'{p}mounts+=("-v \\"$(realpath "${{{name}}}"):{mount}\\"")',
-                f'{p}docker_vals["{name}"]="{mount}"',
-                "",
-            )
+        mount     = d['mount']
+        flag      = d['flag']
+        copy_dir  = d.get('copy', 'false') in ('true', 'yes')
+        optional  = d.get('optional', False)
+        ro_suffix = ':ro' if flag == 'ro' else ''
+        label     = 'read-only directory' if flag == 'ro' else f'read-write directory [{flag}]'
+        indent    = f"{p}    " if optional else p
 
+        if copy_dir:
+            body = [
+                f"{indent}# {name}: copy into workdir, then mount the copy ({label})",
+                f'{indent}_copy_src_{name}="$(realpath "${{{name}}}")"',
+                f'{indent}_copy_dst_{name}="${{scratch_path}}/$(basename "${{_copy_src_{name}}}")"',
+                f'{indent}cp -r "${{_copy_src_{name}}}" "${{_copy_dst_{name}}}"',
+                f'{indent}mounts+=("-v \\"${{_copy_dst_{name}}}:{mount}{ro_suffix}\\"")',
+                f'{indent}docker_vals["{name}"]="{mount}"',
+            ]
+        else:
+            body = [
+                f"{indent}# {name}: {label}",
+                f'{indent}mounts+=("-v \\"$(realpath "${{{name}}}"):{mount}{ro_suffix}\\"")',
+                f'{indent}docker_vals["{name}"]="{mount}"',
+            ]
+
+        if optional:
+            w(f"{p}# {name} is optional: mount only if a real path is passed, use 'dummy' placeholder otherwise")
+            w(f'{p}if [ "${{{name}}}" != "dummy" ]; then')
+            w(*body)
+            w(f"{p}else")
+            w(f'{p}    docker_vals["{name}"]="dummy"')
+            w(f"{p}fi")
+        else:
+            w(*body)
+        w("")
     w(
         f"{p}# --- Bind files and service volumes ---",
         f"{p}declare -A mounted_folders",
     )
-
     for f in files:
-        name = f['name']
-        flag = f['flag']
-        if flag == 'cp' or flag not in ('ro', 'nc'):
+        name      = f['name']
+        copy_file = f['copy']
+        optional  = f['optional']
+        flag      = f.get('flag', '')
+        ro_suffix = ':ro' if flag == 'ro' else ''
+        indent    = f"{p}    " if optional else p
+        if copy_file:
             wdir_mount = directories.get('workdir', {}).get('mount', '/workdir')
-            w(
-                f'{p}_src_{name}="$(realpath "${{{name}}}")"',
-                f'{p}cp "${{_src_{name}}}" "${{scratch_path}}/"',
-                f'{p}docker_vals["{name}"]="{wdir_mount}/$(basename "${{_src_{name}}}")"',
-                "",
-            )
-        elif flag in ('ro', 'nc'):
-            w(
-                f'{p}_src_{name}="$(realpath "${{{name}}}")"',
-                f'{p}_dir_{name}="$(dirname "${{_src_{name}}}")"',
-                f'{p}if [ -z "${{mounted_folders[${{_dir_{name}}}]+x}}" ]; then',
-                f'{p}    _m_point="/service${{service_idx}}"',
-                f'{p}    mounted_folders["${{_dir_{name}}}"]="${{_m_point}}"',
-                f'{p}    mounts+=("-v \\"${{_dir_{name}}}:${{_m_point}}:ro\\"")',
-                f'{p}    service_idx=$((service_idx + 1))',
-                f'{p}fi',
-                f'{p}docker_vals["{name}"]="${{mounted_folders[${{_dir_{name}}}]}}/$(basename "${{_src_{name}}}")"',
-                "",
-            )
-
+            body = [
+                f'{indent}_src_{name}="$(realpath "${{{name}}}")"',
+                f'{indent}cp "${{_src_{name}}}" "${{scratch_path}}/"',
+                f'{indent}docker_vals["{name}"]="{wdir_mount}/$(basename "${{_src_{name}}}")"',
+            ]
+        else:  
+            body = [
+                f'{indent}_src_{name}="$(realpath "${{{name}}}")"',
+                f'{indent}_dir_{name}="$(dirname "${{_src_{name}}}")"',
+                f'{indent}if [ -z "${{mounted_folders[${{_dir_{name}}}]+x}}" ]; then',
+                f'{indent}    _m_point="/service${{service_idx}}"',
+                f'{indent}    mounted_folders["${{_dir_{name}}}"]="${{_m_point}}"',
+                f'{indent}    mounts+=("-v \\"${{_dir_{name}}}:${{_m_point}}{ro_suffix}\\"")',
+                f'{indent}    service_idx=$((service_idx + 1))',
+                f"{indent}fi",
+                f'{indent}docker_vals["{name}"]="${{mounted_folders[${{_dir_{name}}}]}}/$(basename "${{_src_{name}}}")"',
+            ]
+        if optional:
+            w(f'{p}if [ "${{{name}}}" != "dummy" ]; then')
+            w(*body)
+            w(f"{p}else")
+            w(f'{p}    docker_vals["{name}"]="dummy"')
+            w(f"{p}fi")
+        else:
+            w(*body)
+        w("")
     for param in parameters:
         name = param['name']
         w(f'{p}docker_vals["{name}"]="${{{name}}}"')
@@ -386,6 +464,10 @@ def gen_bash(sections, script_name, as_function=False):
             f'{p}mount_str="${{mount_str//-v \\"/ --bind }}"',
             f'{p}mount_str="${{mount_str//\\"}}"',
         )
+    quote_names = [n for n, d in directories.items() if d.get('quote', False)]
+    quote_names += [f['name'] for f in files if f.get('quote', False)]
+    quote_names += [p['name'] for p in parameters if p.get('quote', False)]
+    quote_names_str = ' '.join(f'"{n}"' for n in quote_names)
     param_names = [p['name'] for p in parameters]
     param_names_str = ' '.join(f'"{n}"' for n in param_names)
 
@@ -394,6 +476,7 @@ def gen_bash(sections, script_name, as_function=False):
 
     w(
         f'{p}PARAM_NAMES=({param_names_str})',
+        f'{p}QUOTE_KEYS=({quote_names_str})',
         f"{p}special_chars_re='{_special_class_escaped}'",
         f'{p}cmd="{bala_cmd} ${{mount_str}} {full_template}"',
         f'{p}for key in "${{!docker_vals[@]}}"; do',
@@ -402,7 +485,11 @@ def gen_bash(sections, script_name, as_function=False):
         f'{p}    for p_name in "${{PARAM_NAMES[@]}}"; do',
         f'{p}        if [ "${{key}}" = "${{p_name}}" ]; then is_param=1; break; fi',
         f'{p}    done',
-        f'{p}    if [ "${{is_param}}" -eq 1 ] && [[ "${{val}}" =~ ${{special_chars_re}} ]]; then',
+        f'{p}    force_quote=0',
+        f'{p}    for q_name in "${{QUOTE_KEYS[@]}}"; do',
+        f'{p}        if [ "${{key}}" = "${{q_name}}" ]; then force_quote=1; break; fi',
+        f'{p}    done',
+        f'{p}    if [ "${{force_quote}}" -eq 1 ] || ( [ "${{is_param}}" -eq 1 ] && [[ "${{val}}" =~ ${{special_chars_re}} ]] ); then',
         f'{p}        escaped_val=$(echo "${{val}}" | sed \'s/"/\\\\"/g\')',
         f'{p}        cmd="${{cmd//<${{key}}>/\\"${{escaped_val}}\\"}}"',
         f'{p}    else',
@@ -448,3 +535,61 @@ def gen_bash(sections, script_name, as_function=False):
     with open(output_filename, "w", encoding="utf-8") as out_f:
         out_f.write("\n".join(L))
     print(f"\033[92mBash script '{output_filename}' generated successfully.\033[0m")
+    # -------------------------------------------------------------------------
+    # Sample launch command file
+    # -------------------------------------------------------------------------
+    arg_placeholders = []
+    for item in dynamic_items:
+        name = item['content']['name']
+        if item['type'] == 'parameter':
+            param = next((pm for pm in parameters if pm['name'] == name), None)
+            default_val = param['value'] if param else ''
+            if default_val:
+                value = default_val
+            else:
+                value = f"<{name}>"
+        elif item['type'] == 'directory':
+            value = f"/path/to/directory/{name}"
+        else:  # file
+            value = f"/path/to/file/{name}"
+        if name in quote_names:
+            value = f'"{value}"'
+        arg_placeholders.append(value)
+
+    args_str = ' '.join(arg_placeholders)
+    if as_function:
+        sample_cmd = f"source {exec_name}.sh && {exec_name} {args_str}"
+    else:
+        sample_cmd = f"bash {exec_name}.sh {args_str}"
+    command_file = f"{exec_name}_command.txt"
+    marker = "# ------- bash sample command ------- #"
+    file_existed = os.path.exists(command_file)
+    if file_existed:
+        with open(command_file, "r") as f:
+            lines = f.readlines()
+        marker_index = -1
+        for i, line in enumerate(lines):
+            if marker in line:
+                marker_index = i
+                break
+        if marker_index != -1:
+            del lines[marker_index : marker_index + 4]
+            new_lines = lines[:marker_index]
+            remaining_lines = lines[marker_index:]
+        else:
+            new_lines = lines
+            remaining_lines = []
+    else:
+        new_lines = []
+        remaining_lines = []
+    new_block = [
+        f"{marker}\n",
+        "\n",
+        f"{sample_cmd.strip()}\n",
+        "\n",
+    ]
+    final_lines = new_lines + new_block + remaining_lines
+    with open(command_file, "w") as f:
+        f.writelines(final_lines)
+    action = "updated" if file_existed else "generated"
+    print(f"\033[92mSample command file '{command_file}' successfully {action}.\033[0m")

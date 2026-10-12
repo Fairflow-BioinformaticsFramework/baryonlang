@@ -1,0 +1,12 @@
+# -------------------- Bayron project -------------
+Creator: "Baryon"
+ 
+# name of the xml file
+xmlfile:
+  class: File
+  path: path/to/file/xmlfile # <=====================
+ 
+# cell type
+# Possible values: HTGTS_human,HTGTS_mouse,CELTICSseq,polyA
+configtype: "HTGTS_mouse" # <=====================
+ 

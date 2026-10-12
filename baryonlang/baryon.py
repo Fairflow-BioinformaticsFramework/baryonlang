@@ -12,7 +12,7 @@ from baryonlang.functions.gen_python import gen_python
 from baryonlang.functions.gen_r import gen_r
 from baryonlang.functions.gen_bash import gen_bash
 from baryonlang.functions.parse_and_validate import parse_and_validate
-from baryonlang.functions.colors import WHITE, BLUE, YELLOW, ORANGE, RED, GREEN, GRAY, PINK, BROWN, RESET
+from baryonlang.functions.colors import WHITE, BLUE, YELLOW, ORANGE, RED, GREEN, GRAY, PINK, BROWN, CYAN, TEAL, VIOLET, SALMON, RESET
 
 import argparse
 import os
@@ -23,7 +23,7 @@ VALID_LANGUAGES = ['nextflow', 'streamflow', 'galaxy', 'python', 'r', 'bash', 'a
 
 # --------------------------- Files produced by each language generator -------------------------------------------------
 LANGUAGE_FILES = {
-    'nextflow':   lambda tool_id: [f"{tool_id}.nf", "nextflow.config", f"{tool_id}_nextflow.txt"],
+    'nextflow':   lambda tool_id: [f"{tool_id}.nf", "nextflow.config"],
     'streamflow': lambda tool_id: [f"{tool_id}.cwl", f"{tool_id}-params.yml", f"{tool_id}.yml"],
     'galaxy':     lambda tool_id: [f"{tool_id}_targz.xml", f"{tool_id}.xml"],
     'python':     lambda tool_id: [f"{tool_id}.py"],
@@ -124,18 +124,53 @@ def get_candidate_files(language, tool_id):
     return []
 
 # -------------------------- display summary sections ------------------------------------------------------------------
+FIELD_ORDER = ['name', 'description', 'values', 'default', 'optional', 'mount', 'flag', 'copy', 'quote']
+FLAG_LABELS = {
+    'in':  'input',
+    'out': 'output',
+    'io':  'input/output',
+    'ro':  'read-only',
+}
 def display_summary(sections):
     print(f"\n{GRAY}--- FILE CONTENT SUMMARY ---{RESET}")
     for sec in sections:
-        color = get_color_for_section(sec['type']) 
-        display_values = []
         content = sec['content']
+        stype = sec['type']
+        if stype == 'run':
+            parts = [f"{CYAN}{val}{RESET}" for val in content.values()]
+            if parts:
+                print(f"{WHITE}[{stype}]{RESET} " + ", ".join(parts))
+            continue
+        parts = []
+        for key in FIELD_ORDER:
+            if key not in content:
+                continue
+            val = content[key]
+            if key == 'name':
+                parts.append(f"{YELLOW}{val}{RESET}")
+            elif key == 'values':
+                parts.append(f"{PINK}{val}{RESET}")
+            elif key == 'default':
+                parts.append(f"{BROWN}default={val}{RESET}")
+            elif key == 'flag':
+                parts.append(f"{GREEN}{FLAG_LABELS.get(val, val)}{RESET}")
+            elif key == 'description':
+                color = ORANGE if stype == 'research' else BLUE
+                parts.append(f"{color}{val}{RESET}")
+            elif key == 'mount':
+                parts.append(f"{TEAL}{val}{RESET}")
+            elif key == 'optional':
+                parts.append(f"{VIOLET}optional={val}{RESET}")
+            elif key == 'copy':
+                parts.append(f"{SALMON}copy={val}{RESET}")
+            elif key == 'quote':
+                parts.append(f"{CYAN}quote={val}{RESET}")
         for key, val in content.items():
-            display_values.append(val) 
-        if display_values:
-            print(f"{color}{', '.join(display_values)}{RESET}") 
+            if key not in FIELD_ORDER:
+                parts.append(f"{GRAY}{val}{RESET}")
+        if parts:
+            print(f"{WHITE}[{stype}]{RESET} " + ", ".join(parts))
     print(f"{GRAY}----------------------------{RESET}\n")
-
 # ----------------------------------------------------------------------------------------------------------------------
 # -------------------------- M A I N ----------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------------------------
@@ -186,11 +221,11 @@ def main():
     bala_filename = resolve_bala_file(args.bala_file)
     if not bala_filename:
         sys.exit(1)
-    language = resolve_language(args.lang)
     sections = parse_and_validate(bala_filename)
     if not sections:
         return
     display_summary(sections)
+    language = resolve_language(args.lang)
     research_sec = next((s['content'] for s in sections if s['type'] == 'research'), {})
     if args.output:
         script_name = args.output.strip()

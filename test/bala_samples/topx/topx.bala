@@ -1,0 +1,57 @@
+[research]
+description=Filters a gene count matrix, selecting the most relevant genes by variance (using edgeR) or by total count.
+name=topX
+#
+[run]
+command=docker run --rm
+script= Rscript /bin/top.R
+image= repbioinfo/topxv2:1
+usage= <matrixName> <format> <separator> <logged> <threshold> <type>
+#
+[directory]
+name=workDir
+description=Path to the working directory
+flag=io
+mount=/workdir
+#
+[directory]
+name=data
+description=Path to the folder containing input data and receiving output results
+quote=yes
+mount=/data
+copy=yes
+flag=io
+#
+[parameter]
+name=matrixName
+description=Input file name without extension
+default=annotated
+#
+[parameter]
+name=format
+values=csv, txt
+description=Input file format
+default=csv
+quote=TRUE
+#
+[parameter]
+name=threshold
+description=Threshold for selecting top genes (typically between 10 and 2000 depending on dataset size)
+default=10
+#
+[parameter]
+name=separator
+values=',','\t'
+description=File separator (use "," for CSV, "\t" for TSV)
+default=','
+quote=TRUE
+#
+[parameter]
+name=logged
+values=FALSE,TRUE
+description=Indicates whether the count matrix values are already log-transformed (TRUE) or not (FALSE).
+#
+[parameter]
+name=type
+values=expression, variance
+description=Type of analysis to perform.

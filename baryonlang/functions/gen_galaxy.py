@@ -7,12 +7,14 @@ def parse_values(raw_values):
     for match in re.finditer(r"'[^']*'|\"[^\"]*\"|[^,]+", raw_values):
         token = match.group(0).strip()
         if token:
-            tokens.append(token)
+            tokens.append(token.strip("'\""))
     return tokens
 def restore_cdata_quotes(xml_string):
     def fix_cdata(match):
         return match.group(0).replace("&quot;", '"')
     return re.sub(r'<!\[CDATA\[.*?\]\]>', fix_cdata, xml_string, flags=re.DOTALL)
+def is_true_val(val):
+    return str(val).strip().lower() in ('true', 'yes')
 
 def gen_galaxy(sections, script_name):
     res_sec = next((s['content'] for s in sections if s['type'] == 'research'), {})
@@ -23,10 +25,11 @@ def gen_galaxy(sections, script_name):
     raw_name  = script_name or res_sec.get('name', 'baryon_tool')
     tool_name = raw_name.lower().replace(" ", "_")
     def is_input(flag):
-        return flag in ('in', 'io')
+        return flag in ('in', 'io', 'ro')
     def is_output(flag):
         return flag in ('out', 'io')
     dir_mounts_map = {}
+    quote_map = {}
     directories = []
     for item in sections:
         if item['type'] == 'directory':
@@ -34,6 +37,7 @@ def gen_galaxy(sections, script_name):
             name = content.get('name', '')
             mount = content.get('mount', f'/{name}').strip()
             dir_mounts_map[name.lower()] = mount
+            quote_map[name.lower()] = is_true_val(content.get('quote', ''))
             if name.lower() == 'workdir':
                 continue
             flag = content.get('flag', 'io').strip().lower()
@@ -44,6 +48,7 @@ def gen_galaxy(sections, script_name):
                 'mount':       mount,
                 'mount_clean': mount_clean,
                 'description': content.get('description', mount_clean),
+                'optional':    content.get('optional', ''),
             })
     input_dirs  = [d for d in directories if is_input(d['flag'])]
     output_dirs = [d for d in directories if is_output(d['flag'])]
@@ -53,15 +58,24 @@ def gen_galaxy(sections, script_name):
         if item['type'] == 'file':
             f_name = item['content'].get('name', 'input_file')
             file_params.add(f_name.lower())
+            quote_map[f_name.lower()] = is_true_val(item['content'].get('quote', ''))  # restored
+    for item in sections:
+        if item['type'] == 'parameter':
+            p_name = item['content'].get('name', 'param')
+            quote_map[p_name.lower()] = is_true_val(item['content'].get('quote', ''))
     usage_val = run_sec.get('usage', '').strip()
     def replace_placeholders(match):
         placeholder_name = match.group(1)
         placeholder_lower = placeholder_name.lower()
         if placeholder_lower in dir_mounts_map:
-            return dir_mounts_map[placeholder_lower]
-        if placeholder_lower in file_params:
-            return f"${{{placeholder_name}.element_identifier}}"
-        return f"${placeholder_name}"
+            value = dir_mounts_map[placeholder_lower]
+        elif placeholder_lower in file_params:
+            value = f"${{{placeholder_name}.element_identifier}}"
+        else:
+            value = f"${placeholder_name}"
+        if quote_map.get(placeholder_lower, False):
+            return f'"{value}"'
+        return value
     formatted_usage = re.sub(r'<(.*?)>', replace_placeholders, usage_val)
     run_script    = run_sec.get('script', '').strip()
     exec_command  = f"    {run_script} {formatted_usage} > '$output_log' 2>&1 &&"
@@ -102,39 +116,64 @@ def gen_galaxy(sections, script_name):
         inputs = ET.SubElement(tool, "inputs")
         for item in sections:
             if item['type'] == 'file':
-                content = item['content']
+                content  = item['content']
                 f_name   = content.get('name', 'input_file')
                 f_label  = content.get('description', f_name)
                 f_format = content.get('format', 'data')
-                ET.SubElement(inputs, "param", name=f_name, type="data", format=f_format, label=f_label)
+                param_attrs = {"name": f_name,"type": "data","format": f_format,"label": f_label}
+                if is_true_val(content.get('optional', '')):
+                    param_attrs["optional"] = "true"
+                ET.SubElement(inputs, "param", **param_attrs)
         for item in sections:
             if item['type'] == 'parameter':
                 content    = item['content']
                 p_name     = content.get('name', 'param')
                 p_label    = content.get('description', p_name)
-                raw_values = content.get('values', content.get('value', ''))
+                p_default = content.get('default', '').strip().strip("'\"")
+                raw_values = content.get('values', '')
                 p_values   = parse_values(raw_values)
-                if not p_values:
-                    continue
-                param_el = ET.SubElement(inputs, "param", name=p_name, type="select", label=p_label)
-                for val in p_values:
-                    clean_val = val.strip("'\"")
-                    if not clean_val:
-                        clean_val = val[1:-1]
-                    ET.SubElement(param_el, "option", value=clean_val).text = val
+                p_optional = is_true_val(content.get('optional', ''))
+                if p_values:
+                    param_attrs = {"name": p_name, "type": "select", "label": p_label}
+                    if p_optional:
+                        param_attrs["optional"] = "true"
+                    param_el = ET.SubElement(inputs, "param", **param_attrs)
+                    for val in p_values:
+                        clean_val = val
+                        opt_attrs = {"value": clean_val}
+                        if p_default and clean_val == p_default:
+                            opt_attrs["selected"] = "true"
+                        ET.SubElement(param_el, "option", **opt_attrs).text = clean_val
+                else:
+                    param_attrs = {"name": p_name, "type": "text", "label": p_label}
+                    if p_default:
+                        param_attrs["value"] = p_default
+                    if p_optional:
+                        param_attrs["optional"] = "true"
+                        
+                    ET.SubElement(inputs, "param", **param_attrs)
         for d in input_dirs:
+            d_optional = is_true_val(d.get('optional', ''))
             if variant == 'targz':
-                ET.SubElement(inputs, "param",
-                              name=f"{d['mount_clean']}_tar",
-                              type="data",
-                              format="tar.gz",
-                              label=f"{d['description']} (Tar Archive)")
+                param_attrs = {
+                    "name": f"{d['mount_clean']}_tar",
+                    "type": "data",
+                    "format": "tar.gz",
+                    "label": f"{d['description']} (Tar Archive)"
+                }
+                if d_optional:
+                    param_attrs["optional"] = "true"
+                ET.SubElement(inputs, "param", **param_attrs)
             else:
-                ET.SubElement(inputs, "param",
-                              name=f"{d['mount_clean']}_collection",
-                              type="data_collection",
-                              format="data",
-                              label=d['description'])
+                param_attrs = {
+                    "name": f"{d['mount_clean']}_collection",
+                    "type": "data_collection",
+                    "format": "data",
+                    "label": d['description']
+                }
+                if d_optional:
+                    param_attrs["optional"] = "true"
+                ET.SubElement(inputs, "param", **param_attrs)
         outputs_el = ET.SubElement(tool, "outputs")
         ET.SubElement(outputs_el, "data", name="output_log", format="txt", label="${tool.name} Global Log")
         for d in output_dirs:

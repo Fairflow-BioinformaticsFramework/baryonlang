@@ -1,0 +1,6 @@
+# -------------------- Bayron project -------------
+Creator: "Baryon"
+ 
+# Real name of the folder mounted for 'genome' -- used to name its copy in workdir/scratch
+genome_origin_name: "" # <=====================
+ 

@@ -1,4 +1,5 @@
 import re
+import os
 
 def parse_values(raw_values):
     """Parse comma-separated values respecting single/double quoted tokens."""
@@ -31,18 +32,28 @@ def gen_python(sections, script_name, as_function=False):
                 'mount':       c.get('mount', f'/{name}').strip(),
                 'flag':        c.get('flag', 'io').strip().lower(),
                 'description': c.get('description', name),
+                'copy':        c.get('copy', 'false').strip().lower(),
+                'optional':    c.get('optional', 'false').strip().lower() in ('true', 'yes'),
+                'quote':       c.get('quote', 'false').strip().lower() in ('true', 'yes'),
             }
     has_workdir = 'workdir' in directories
     has_outdir  = 'outdir'  in directories
+
     # ------------------------- Collect files ----------------------
     files = []
     for item in sections:
         if item['type'] == 'file':
-            c = item['content']
+            c        = item['content']
+            file_flag = c.get('flag', '').strip().lower()
+            copy_raw  = c.get('copy')
+            copy_default = 'no' if (copy_raw is None and file_flag == 'ro') else 'yes'
             files.append({
                 'name':        c.get('name', 'input_file'),
-                'flag':        c.get('flag', 'cp').strip().lower(),
+                'flag':        file_flag,
+                'copy':        (copy_raw if copy_raw is not None else copy_default).strip().lower() in ('true', 'yes'),
                 'description': c.get('description', ''),
+                'optional':    c.get('optional', 'false').strip().lower() in ('true', 'yes'),
+                'quote':       c.get('quote', 'false').strip().lower() in ('true', 'yes'),
             })
     # ------------------- Collect parameters and their allowed values --------------------
     parameters = []
@@ -54,7 +65,16 @@ def gen_python(sections, script_name, as_function=False):
                 'name':        c.get('name', 'param'),
                 'description': c.get('description', ''),
                 'values':      parse_values(raw_values),
+                'value':       c.get('default', '').strip().strip("'\""),
+                'optional':    c.get('optional', 'false').strip().lower() in ('true', 'yes'),
+                'quote':       c.get('quote', 'false').strip().lower() in ('true', 'yes'),
             })
+    # ------------------- names for which the resolved value must be wrapped in double quotes in the generated command line, regardless of its content ------------------- #
+    QUOTE_NAMES = (
+        {n for n, d in directories.items() if d['quote']}
+        | {f['name'] for f in files if f['quote']}
+        | {p['name'] for p in parameters if p['quote']}
+    )            
     # ------------------- Build docker command template -------------------
     bala_cmd    = run_sec.get('command', 'docker run --rm').strip()
     bala_img    = run_sec.get('image', '').strip()
@@ -136,8 +156,12 @@ def gen_python(sections, script_name, as_function=False):
             name  = item['content']['name']
             color = TYPE_COLORS.get(item['type'], DEFAULT_COLOR)
             desc  = item['content'].get('description', '')
-            flag  = item['content'].get('flag', '')
-            flag_str = f" [{flag}]" if flag else ""
+            if item['type'] == 'file':
+                copy_val = item['content'].get('copy', 'yes')
+                flag_str = f" [copy={copy_val}]"
+            else:
+                flag = item['content'].get('flag', '')
+                flag_str = f" [{flag}]" if flag else ""
             w(f"        print(f'{color}{name.ljust(15)}{{RESET}}{flag_str.ljust(6)} {desc}')")
         w(
             "        sys.exit(1)",
@@ -169,13 +193,26 @@ def gen_python(sections, script_name, as_function=False):
             name  = item['content']['name']
             color = TYPE_COLORS.get(item['type'], DEFAULT_COLOR)
             desc  = item['content'].get('description', '')
-            flag  = item['content'].get('flag', '')
-            flag_str = f" [{flag}]" if flag else ""
+            if item['type'] == 'file':
+                copy_val = item['content'].get('copy', 'yes')
+                flag_str = f" [copy={copy_val}]"
+            else:
+                flag = item['content'].get('flag', '')
+                flag_str = f" [{flag}]" if flag else ""
             w(f"        print(f'{color}{name.ljust(15)}{{RESET}}{flag_str.ljust(6)} {desc}')")
         w(
             "        raise ValueError('Missing required arguments')",
             "",
         )
+    w("    # --- Resolve 'default' keyword using each parameter's configured value= ---")
+    for p in parameters:
+        if p['value']:
+            name = p['name']
+            w(
+                f"    if args['{name}'] == 'default':",
+                f"        args['{name}'] = {p['value']!r}",
+            )
+    w("")
     # --------------------------------  Validation block --------------------------
     w("    # --- Input validation ---")
     w("    errors = []")
@@ -183,28 +220,48 @@ def gen_python(sections, script_name, as_function=False):
     for item in dynamic_items:
         if item['type'] != 'directory':
             continue
-        name = item['content']['name']
-        w(
-            f"    if not os.path.isdir(args['{name}']):",
-            f"        errors.append(f'Directory not found: {name} = {{args[\"{name}\"]}}\"')",
-        )
+        name     = item['content']['name']
+        optional = item['content'].get('optional', 'false').lower() in ('true', 'yes')
+        if optional:
+            w(
+                f"    if args['{name}'] != 'dummy' and not os.path.isdir(args['{name}']):",
+                f"        errors.append(f'Directory not found: {name} = {{args[\"{name}\"]}}')",
+            )
+        else:
+            w(
+                f"    if not os.path.isdir(args['{name}']):",
+                f"        errors.append(f'Directory not found: {name} = {{args[\"{name}\"]}}')",
+            )
     for item in dynamic_items:
         if item['type'] != 'file':
             continue
-        name = item['content']['name']
-        w(
-            f"    if not os.path.isfile(args['{name}']):",
-            f"        errors.append(f'File not found: {name} = {{args[\"{name}\"]}}\"')",
-        )
+        name     = item['content']['name']
+        optional = item['content'].get('optional', 'false').lower() in ('true', 'yes')
+        if optional:
+            w(
+                f"    if args['{name}'] != 'dummy' and not os.path.isfile(args['{name}']):",
+                f"        errors.append(f'File not found: {name} = {{args[\"{name}\"]}}')",
+            )
+        else:
+            w(
+                f"    if not os.path.isfile(args['{name}']):",
+                f"        errors.append(f'File not found: {name} = {{args[\"{name}\"]}}')",
+            )
     for p in parameters:
         if not p['values']:
             continue
-        allowed_repr = repr(p['values'])
         name         = p['name']
-        w(
-            f"    if args['{name}'] not in {allowed_repr}:",
-            f'        errors.append(f"""Invalid value for {name}: {{args["{name}"]}}. Allowed: {p["values"]}""")'
-        )
+        allowed_repr = repr(p['values'])
+        if p['optional']:
+            w(
+                f"    if args['{name}'] != 'dummy' and args['{name}'] not in {allowed_repr}:",
+                f'        errors.append(f"""Invalid value for {name}: {{args["{name}"]}}. Allowed: {p["values"]}""")'
+            )
+        else:
+            w(
+                f"    if args['{name}'] not in {allowed_repr}:",
+                f'        errors.append(f"""Invalid value for {name}: {{args["{name}"]}}. Allowed: {p["values"]}""")'
+            )
     if as_function:
         w(
             "",
@@ -270,49 +327,75 @@ def gen_python(sections, script_name, as_function=False):
     for name, d in directories.items():
         if name in ('workdir', 'outdir'):
             continue
-        mount = d['mount']
-        flag  = d['flag']
-        if flag == 'ro':
-            w(
-                f"    # {name}: read-only directory",
-                f"    mounts.append(f'-v \"{{os.path.abspath(args[\"{name}\"])}}:{mount}:ro\"')",
-                f"    docker_vals['{name}'] = '{mount}'",
-                "",
-            )
+        mount     = d['mount']
+        flag      = d['flag']
+        copy_dir  = d.get('copy', 'false') in ('true', 'yes')
+        optional  = d.get('optional', False)
+        ro_suffix = ':ro' if flag == 'ro' else ''
+        label     = 'read-only directory' if flag == 'ro' else f'read-write directory [{flag}]'
+        indent    = '        ' if optional else '    '
+
+        if copy_dir:
+            body = [
+                f"{indent}# {name}: copy into workdir, then mount the copy ({label})",
+                f'{indent}_copy_src_{name} = os.path.abspath(args["{name}"])',
+                f'{indent}_copy_dst_{name} = os.path.join(scratch_path, os.path.basename(_copy_src_{name}))',
+                f"{indent}shutil.copytree(_copy_src_{name}, _copy_dst_{name}, dirs_exist_ok=True)",
+                f"{indent}mounts.append(f'-v \"{{_copy_dst_{name}}}:{mount}{ro_suffix}\"')",
+                f"{indent}docker_vals['{name}'] = '{mount}'",
+            ]
         else:
-            w(
-                f"    # {name}: read-write directory [{flag}]",
-                f"    mounts.append(f'-v \"{{os.path.abspath(args[\"{name}\"])}}:{mount}\"')",
-                f"    docker_vals['{name}'] = '{mount}'",
-                "",
-            )
+            body = [
+                f"{indent}# {name}: {label}",
+                f"{indent}mounts.append(f'-v \"{{os.path.abspath(args[\"{name}\"])}}:{mount}{ro_suffix}\"')",
+                f"{indent}docker_vals['{name}'] = '{mount}'",
+            ]
+
+        if optional:
+            w(f"    # {name} is optional: mount only if a real path is passed, use 'dummy' placeholder otherwise")
+            w(f"    if args['{name}'] != 'dummy':")
+            w(*body)
+            w("    else:")
+            w(f"        docker_vals['{name}'] = 'dummy'")
+        else:
+            w(*body)
+        w("")
     w(
         "    # --- Bind files and service volumes ---",
         "    mounted_folders = {}", 
     )
     for f in files:
-        name = f['name']
-        flag = f['flag']
-        if flag == 'cp' or flag not in ('ro', 'nc'):
+        name      = f['name']
+        copy_file = f['copy']
+        optional  = f['optional']
+        ro_suffix = ':ro' if f.get('flag', '') == 'ro' else ''        
+        indent    = '        ' if optional else '    '
+        if copy_file:
             wdir_mount = directories.get('workdir', {}).get('mount', '/workdir')
-            w(
-                f"    _src_{name} = os.path.abspath(args['{name}'])",
-                f"    shutil.copy(_src_{name}, scratch_path)",
-                f"    docker_vals['{name}'] = f'{wdir_mount}/{{os.path.basename(_src_{name})}}'",
-                "",
-            )
-        elif flag in ('ro', 'nc'):
-            w(
-                f"    _src_{name} = os.path.abspath(args['{name}'])",
-                f"    _dir_{name} = os.path.dirname(_src_{name})",
-                f"    if _dir_{name} not in mounted_folders:",
-                f"        _m_point = f'/service{{service_idx}}'",
-                f"        mounted_folders[_dir_{name}] = _m_point",
-                f"        mounts.append(f'-v \"{{_dir_{name}}}:{{_m_point}}:ro\"')",
-                f"        service_idx += 1",
-                f"    docker_vals['{name}'] = f'{{mounted_folders[_dir_{name}]}}/{{os.path.basename(_src_{name})}}'",
-                "",
-            )
+            body = [
+                f"{indent}_src_{name} = os.path.abspath(args['{name}'])",
+                f"{indent}shutil.copy(_src_{name}, scratch_path)",
+                f"{indent}docker_vals['{name}'] = f'{wdir_mount}/{{os.path.basename(_src_{name})}}'",
+            ]
+        else: 
+            body = [
+                f"{indent}_src_{name} = os.path.abspath(args['{name}'])",
+                f"{indent}_dir_{name} = os.path.dirname(_src_{name})",
+                f"{indent}if _dir_{name} not in mounted_folders:",
+                f"{indent}    _m_point = f'/service{{service_idx}}'",
+                f"{indent}    mounted_folders[_dir_{name}] = _m_point",
+                f"{indent}    mounts.append(f'-v \"{{_dir_{name}}}:{{_m_point}}{ro_suffix}\"')",
+                f"{indent}    service_idx += 1",
+                f"{indent}docker_vals['{name}'] = f'{{mounted_folders[_dir_{name}]}}/{{os.path.basename(_src_{name})}}'",
+            ]
+        if optional:
+            w(f"    if args['{name}'] != 'dummy':")
+            w(*body)
+            w("    else:")
+            w(f"        docker_vals['{name}'] = 'dummy'")
+        else:
+            w(*body)
+        w("")
     for p in parameters:
         name = p['name']
         w(f"    docker_vals['{name}'] = args['{name}']")
@@ -326,18 +409,22 @@ def gen_python(sections, script_name, as_function=False):
        w( "    mount_str = mount_str.replace('-v \"', '--bind ').replace('\"', '')")
 
     param_names = [p['name'] for p in parameters]
-    w(  
-        f"    cmd = ' '.join(['{bala_cmd}', mount_str, {repr(full_template)}])",          
+    w(
+        f"    cmd = ' '.join(['{bala_cmd}', mount_str, {repr(full_template)}])",
         f"    PARAM_NAMES = {param_names!r}",
+        f"    QUOTE_NAMES = {sorted(QUOTE_NAMES)!r}",
         "    def replace_placeholder(match):",
         "        key = match.group(1)",
         "        val = str(docker_vals.get(key, match.group(0)))",
+        "        if key in QUOTE_NAMES and val != 'dummy':",
+        "            escaped_val = val.replace('\"', '\\\\\"')",
+        "            return f'\"{escaped_val}\"'",
         "        if key in PARAM_NAMES:",
         "            if re.search(r'[;&|()<>$`\"\\'\\s]', val):",
         "                escaped_val = val.replace('\"', '\\\\\"')",
         "                return f'\"{escaped_val}\"'",
         "        return val",
-        "",   
+        "",
         "    cmd = re.sub(r'<([^>]+)>', replace_placeholder, cmd)",
         "",
         "    print(f'\\n{YELLOW}Running:{RESET}\\n{WHITE}{cmd}{RESET}\\n')",
@@ -383,3 +470,57 @@ def gen_python(sections, script_name, as_function=False):
     with open(output_filename, "w", encoding="utf-8") as out_f:
         out_f.write("\n".join(L))
     print(f"\033[92mPython script '{output_filename}' generated successfully.\033[0m")
+    # ------------------ Sample launch command file -------------------
+    arg_placeholders = []       
+    kwarg_placeholders = []     
+    for item in dynamic_items:
+        name = item['content']['name']
+        if item['type'] == 'parameter':
+            param = next((pm for pm in parameters if pm['name'] == name), None)
+            default_val = param['value'] if param else ''
+            value = default_val if default_val else f"<{name}>"
+        elif item['type'] == 'directory':
+            value = f"/path/to/directory/{name}"
+        else:  # file
+            value = f"/path/to/file/{name}"
+        arg_placeholders.append(f'"{value}"' if name in QUOTE_NAMES else value)
+        kwarg_placeholders.append(f'{name}="{value}"')
+
+    if as_function:
+        args_str = ', '.join(kwarg_placeholders)
+        sample_cmd = f"from {exec_name} import {exec_name}\n{exec_name}({args_str})"
+    else:
+        args_str = ' '.join(arg_placeholders)
+        sample_cmd = f"python {exec_name}.py {args_str}"
+    command_file = f"{exec_name}_command.txt"
+    marker = "# ------- python sample command ------- #"
+    file_existed = os.path.exists(command_file)
+    if file_existed:
+        with open(command_file, "r") as f:
+            lines = f.readlines()
+        marker_index = -1
+        for i, line in enumerate(lines):
+            if marker in line:
+                marker_index = i
+                break
+        if marker_index != -1:
+            del lines[marker_index : marker_index + 4]
+            new_lines = lines[:marker_index]
+            remaining_lines = lines[marker_index:]
+        else:
+            new_lines = lines
+            remaining_lines = []
+    else:
+        new_lines = []
+        remaining_lines = []
+    new_block = [
+        f"{marker}\n",
+        "\n",
+        f"{sample_cmd.strip()}\n",
+        "\n",
+    ]
+    final_lines = new_lines + new_block + remaining_lines
+    with open(command_file, "w") as f:
+        f.writelines(final_lines)
+    action = "updated" if file_existed else "generated"
+    print(f"\033[92mSample command file '{command_file}' successfully {action}.\033[0m")

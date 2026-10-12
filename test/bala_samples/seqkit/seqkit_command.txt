@@ -1,0 +1,12 @@
+# ------- python sample command ------- #
+
+python seqkit.py /path/to/file/filein /path/to/directory/workdir /path/to/directory/outdir <fileout> stats <length>
+
+# ------- R sample command ------- #
+
+Rscript seqkit.R /path/to/file/filein /path/to/directory/workdir /path/to/directory/outdir <fileout> stats <length>
+
+# ------- bash sample command ------- #
+
+bash seqkit.sh /path/to/file/filein /path/to/directory/workdir /path/to/directory/outdir <fileout> stats <length>
+

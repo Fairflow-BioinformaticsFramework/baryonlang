@@ -1,0 +1,23 @@
+version: v1.0
+workflows:
+  index_align_scrs-workflow:
+    type: cwl
+    config:
+      file: index_align_scrs.cwl
+      settings: index_align_scrs-params.yml
+    bindings:
+      - step: /
+        target:
+          deployment: docker-index_align_scrs
+deployments:
+  docker-index_align_scrs:
+    type: docker
+    config:
+      image: repbioinfo/carncellranger2
+      volume:
+        # working directory path   =====================>
+        - /c/working/directory/path:/workDir 
+        # Genome directory path   =====================>
+        - /c/Genome/directory/path:/genome 
+        # Data directory path   =====================>
+        - /c/Data/directory/path:/scratch 
